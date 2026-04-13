@@ -224,10 +224,12 @@ function buildShareText(jornada) {
 function buildScoreString(matchState) {
   if (!matchState) return null;
   const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
-  const sets = completedSets.map(s => `${s.games[0]}-${s.games[1]}`);
-  if (!isMatchOver) {
-    sets.push(`${current[0]}-${current[1]}`);
-  }
+  const sets = completedSets.map(s => {
+    if (s.superTie) return `ST ${s.superTie[0]}-${s.superTie[1]}`;
+    const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
+    return `${s.games[0]}-${s.games[1]}${loser !== null ? `(${loser})` : ''}`;
+  });
+  if (!isMatchOver) sets.push(`${current[0]}-${current[1]}`);
   return sets.join('  ');
 }
 

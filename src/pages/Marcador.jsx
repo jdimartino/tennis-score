@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useTennisGames, getSetStatus } from '../hooks/useTennisGames';
@@ -6,13 +7,14 @@ import { useJornada } from '../hooks/useJornadas';
 export default function Marcador() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { court, jornada } = location.state || {};
+  const { court, jornada, returnTo = '/' } = location.state || {};
   const { updateCourt } = useJornada(jornada?.id);
+  const [wasEdited, setWasEdited] = useState(false);
 
   const localLabel = court?.myPlayers?.filter(Boolean).join(' / ') || 'Mi Equipo';
   const visitLabel = jornada?.visitingTeam || 'Rival';
 
-  const { state, addGame, removeGame, reset } = useTennisGames({
+  const { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset } = useTennisGames({
     localTeam:    localLabel,
     visitingTeam: visitLabel,
     bestOf:       3,
@@ -20,13 +22,15 @@ export default function Marcador() {
   });
 
   const setStatus = getSetStatus(state);
+  const isTiebreak = !state.isMatchOver && state.current[0] === 6 && state.current[1] === 6 && !(state.setsWon[0] === 1 && state.setsWon[1] === 1);
+  const isSuperTie = !state.isMatchOver && state.setsWon[0] === 1 && state.setsWon[1] === 1;
 
   // Save partial state (mid-match) and go back
   const savePartialAndGoBack = async () => {
     if (court && jornada) {
       await updateCourt(court.id, { matchState: state });
     }
-    navigate('/jornada');
+    navigate(returnTo);
   };
 
   // Save final result (match over) and go back
@@ -34,7 +38,7 @@ export default function Marcador() {
     if (court && jornada) {
       await updateCourt(court.id, { winner, matchState: state });
     }
-    navigate('/jornada');
+    navigate(returnTo);
   };
 
   return (
@@ -67,14 +71,29 @@ export default function Marcador() {
 
         {/* Sets won indicator */}
         {state.completedSets.length > 0 && (
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center flex-wrap">
             {state.completedSets.map((s, i) => {
+              if (s.superTie) {
+                const stWinner = s.superTie[0] > s.superTie[1] ? 0 : 1;
+                return (
+                  <div key={i} className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
+                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide">Super Tie</span>
+                    <span className={`lexend font-bold ${stWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.superTie[0]}</span>
+                    <span className="text-on-surface-variant opacity-40">–</span>
+                    <span className={`lexend font-bold ${stWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.superTie[1]}</span>
+                  </div>
+                );
+              }
               const setWinner = s.games[0] > s.games[1] ? 0 : 1;
+              const loserTieScore = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
               return (
                 <div key={i} className="bg-surface-container-high rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
                   <span className={`lexend font-bold ${setWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.games[0]}</span>
                   <span className="text-on-surface-variant opacity-40">–</span>
                   <span className={`lexend font-bold ${setWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.games[1]}</span>
+                  {loserTieScore !== null && (
+                    <span className="text-on-surface-variant opacity-40 text-[10px]">({loserTieScore})</span>
+                  )}
                   <span className="text-on-surface-variant opacity-30 text-[10px] ml-1">S{i + 1}</span>
                 </div>
               );
@@ -82,36 +101,57 @@ export default function Marcador() {
           </div>
         )}
 
-        {/* Scoreboard Card */}
-        {!state.isMatchOver && (
+        {/* Scoreboard Card — Normal mode */}
+        {!state.isMatchOver && !isTiebreak && !isSuperTie && (
           <div className="bg-surface-container-high rounded-[2rem] p-5 border border-white/5 shadow-2xl relative overflow-hidden">
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
             <p className="lexend text-[10px] font-bold uppercase tracking-widest text-on-surface-variant text-center mb-5">
               Set {state.completedSets.length + 1}
-              {state.current[0] === 6 && state.current[1] === 6 && (
-                <span className="ml-2 text-error">· Tiebreak</span>
-              )}
             </p>
-
             <div className="flex flex-col gap-4">
-              <PlayerRow
-                label={localLabel}
-                games={state.current[0]}
-                setsWon={state.setsWon[0]}
-                isLocal={true}
-                onAdd={() => addGame(0)}
-                onRemove={() => removeGame(0)}
-              />
+              <PlayerRow label={localLabel} games={state.current[0]} setsWon={state.setsWon[0]} isLocal={true}  onAdd={() => addGame(0)}  onRemove={() => removeGame(0)} />
               <div className="w-full h-px bg-white/5" />
-              <PlayerRow
-                label={visitLabel}
-                games={state.current[1]}
-                setsWon={state.setsWon[1]}
-                isLocal={false}
-                onAdd={() => addGame(1)}
-                onRemove={() => removeGame(1)}
-              />
+              <PlayerRow label={visitLabel} games={state.current[1]} setsWon={state.setsWon[1]} isLocal={false} onAdd={() => addGame(1)}  onRemove={() => removeGame(1)} />
+            </div>
+          </div>
+        )}
+
+        {/* Scoreboard Card — TIE mode (6-6 in games) */}
+        {!state.isMatchOver && isTiebreak && (
+          <div className="bg-surface-container-high rounded-[2rem] p-5 border border-error/30 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-error/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="text-error text-lg">⚡</span>
+              <p className="lexend text-sm font-black uppercase tracking-widest text-error text-center">TIE</p>
+              <span className="text-error text-lg">⚡</span>
+            </div>
+            <p className="lexend text-[10px] text-on-surface-variant text-center mb-5">
+              Set {state.completedSets.length + 1} · 6–6 · Primero en llegar a 7 con 2 de ventaja
+            </p>
+            <div className="flex flex-col gap-4">
+              <PlayerRow label={localLabel} games={state.tiebreak.points[0]} setsWon={state.setsWon[0]} isLocal={true}  onAdd={() => addTiePoint(0)}  onRemove={() => removeTiePoint(0)} />
+              <div className="w-full h-px bg-white/5" />
+              <PlayerRow label={visitLabel} games={state.tiebreak.points[1]} setsWon={state.setsWon[1]} isLocal={false} onAdd={() => addTiePoint(1)}  onRemove={() => removeTiePoint(1)} />
+            </div>
+          </div>
+        )}
+
+        {/* Scoreboard Card — SUPER TIE mode (1-1 in sets) */}
+        {!state.isMatchOver && isSuperTie && (
+          <div className="bg-surface-container-high rounded-[2rem] p-5 border border-amber-500/40 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="text-amber-400 text-lg">🏆</span>
+              <p className="lexend text-sm font-black uppercase tracking-widest text-amber-400 text-center">SUPER TIE</p>
+              <span className="text-amber-400 text-lg">🏆</span>
+            </div>
+            <p className="lexend text-[10px] text-on-surface-variant text-center mb-5">
+              Sets 1–1 · Primero en llegar a 10 con 2 de ventaja
+            </p>
+            <div className="flex flex-col gap-4">
+              <PlayerRow label={localLabel} games={state.superTie.points[0]} setsWon={state.setsWon[0]} isLocal={true}  onAdd={() => addSuperTiePoint(0)}  onRemove={() => removeSuperTiePoint(0)} />
+              <div className="w-full h-px bg-white/5" />
+              <PlayerRow label={visitLabel} games={state.superTie.points[1]} setsWon={state.setsWon[1]} isLocal={false} onAdd={() => addSuperTiePoint(1)}  onRemove={() => removeSuperTiePoint(1)} />
             </div>
           </div>
         )}
@@ -125,45 +165,56 @@ export default function Marcador() {
                 {state.winner === 0 ? localLabel : visitLabel}
               </h3>
               <p className="text-on-surface-variant text-sm mt-1">Ganador del partido</p>
-              <div className="flex justify-center gap-3 mt-3">
-                {state.completedSets.map((s, i) => (
-                  <span key={i} className="lexend text-sm font-bold text-on-surface-variant">
-                    {s.games[0]}–{s.games[1]}
-                  </span>
-                ))}
+              <div className="flex justify-center gap-3 mt-3 flex-wrap">
+                {state.completedSets.map((s, i) => {
+                  if (s.superTie) {
+                    return (
+                      <span key={i} className="lexend text-sm font-bold text-amber-400">
+                        ST {s.superTie[0]}–{s.superTie[1]}
+                      </span>
+                    );
+                  }
+                  const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
+                  return (
+                    <span key={i} className="lexend text-sm font-bold text-on-surface-variant">
+                      {s.games[0]}–{s.games[1]}{loser !== null ? ` (${loser})` : ''}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
             {jornada ? (
-              <div className="grid grid-cols-2 gap-3">
+              wasEdited ? (
                 <button
                   onClick={() => saveFinalAndGoBack(state.winner === 0 ? 'mine' : 'theirs')}
-                  className="bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
+                  className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
                 >
                   Guardar y Volver
                 </button>
+              ) : (
                 <button
-                  onClick={() => reset({ localTeam: localLabel, visitingTeam: visitLabel, bestOf: 3 })}
-                  className="bg-surface-container-low text-on-surface lexend font-bold py-4 rounded-2xl hover:bg-surface-container-highest transition-colors"
+                  onClick={() => navigate(returnTo)}
+                  className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
                 >
-                  Revancha
+                  Volver
                 </button>
-              </div>
+              )
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => reset({ localTeam: localLabel, visitingTeam: visitLabel, bestOf: 3 })}
-                  className="bg-surface-container-low text-on-surface lexend font-bold py-4 rounded-2xl"
-                >
-                  Revancha
-                </button>
-                <button
-                  onClick={() => navigate('/')}
-                  className="bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl"
-                >
-                  Nuevo Partido
-                </button>
-              </div>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl"
+              >
+                Nuevo Partido
+              </button>
+            )}
+            {jornada && (
+              <button
+                onClick={() => { reset({ localTeam: localLabel, visitingTeam: visitLabel, bestOf: 3 }); setWasEdited(true); }}
+                className="w-full bg-surface-container-low text-on-surface-variant lexend font-bold py-3 rounded-2xl hover:bg-surface-container-highest transition-colors active:scale-[0.98] text-sm"
+              >
+                Editar marcador
+              </button>
             )}
           </div>
         )}
@@ -177,13 +228,21 @@ export default function Marcador() {
               <SetDots won={state.setsWon[1]} total={state.setsToWin || 2} isLocal={false} label={visitLabel} />
             </div>
             {jornada && (
-              <button
-                onClick={savePartialAndGoBack}
-                className="w-full bg-surface-container-low text-on-surface-variant lexend font-bold py-3 rounded-2xl hover:bg-surface-container-highest transition-colors active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
-              >
-                <span className="material-symbols-outlined text-base">save</span>
-                Guardar y Volver
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={savePartialAndGoBack}
+                  className="w-full bg-surface-container-low text-on-surface-variant lexend font-bold py-3 rounded-2xl hover:bg-surface-container-highest transition-colors active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+                >
+                  <span className="material-symbols-outlined text-base">save</span>
+                  Guardar y Volver
+                </button>
+                <button
+                  onClick={() => navigate(returnTo)}
+                  className="w-full text-on-surface-variant/50 lexend font-bold py-2 rounded-2xl hover:text-on-surface-variant transition-colors active:scale-[0.98] text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
             )}
           </>
         )}

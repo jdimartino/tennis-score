@@ -90,19 +90,22 @@ function JornadaCard({ jornada, onTap }) {
 
         {/* Info + progress */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <div className="min-w-0">
-              <p className="lexend font-bold text-sm text-white truncate leading-none">{myTeam.name} <span className="text-on-surface-variant font-normal opacity-50">vs</span> {visitingTeam}</p>
+              <p className="lexend font-bold text-sm text-white leading-snug">{myTeam.name}</p>
+              <p className="lexend text-xs text-on-surface-variant leading-snug">
+                <span className="opacity-50">vs</span> {visitingTeam}
+              </p>
               {date && <p className="text-[10px] text-on-surface-variant opacity-50 mt-0.5">{date}</p>}
             </div>
             {jornadaWinner ? (
-              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
+              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${
                 jornadaWinner === 'mine' ? 'bg-primary/15 text-primary' : 'bg-error/15 text-error'
               }`}>{jornadaWinner === 'mine' ? 'Ganada' : 'Perdida'}</span>
             ) : inProgress ? (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 bg-secondary/15 text-secondary">En curso</span>
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-secondary/15 text-secondary">En curso</span>
             ) : (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 bg-white/5 text-on-surface-variant">Pendiente</span>
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-white/5 text-on-surface-variant">Pendiente</span>
             )}
           </div>
           {/* Court progress bar */}

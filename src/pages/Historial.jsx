@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useFinishedJornadas } from '../hooks/useJornadas';
 import { getJornadaWinner } from '../hooks/useLocalTeams';
@@ -55,13 +56,18 @@ export default function Historial() {
 function buildScoreString(matchState) {
   if (!matchState) return null;
   const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
-  const sets = completedSets.map(s => `${s.games[0]}-${s.games[1]}`);
+  const sets = completedSets.map(s => {
+    if (s.superTie) return `ST ${s.superTie[0]}-${s.superTie[1]}`;
+    const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
+    return `${s.games[0]}-${s.games[1]}${loser !== null ? `(${loser})` : ''}`;
+  });
   if (!isMatchOver) sets.push(`${current[0]}-${current[1]}`);
   return sets.join('  ');
 }
 
 function JornadaHistorialCard({ jornada }) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   const { myTeam, visitingTeam, date, courts } = jornada;
   const myWins    = courts.filter(c => c.winner === 'mine').length;
   const theirWins = courts.filter(c => c.winner === 'theirs').length;
@@ -92,8 +98,9 @@ function JornadaHistorialCard({ jornada }) {
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <p className="lexend font-bold text-sm text-white leading-none truncate">
-              {myTeam.name} <span className="text-on-surface-variant font-normal opacity-50">vs</span> {visitingTeam}
+            <p className="lexend font-bold text-sm text-white leading-snug">{myTeam.name}</p>
+            <p className="lexend text-xs text-on-surface-variant leading-snug">
+              <span className="opacity-50">vs</span> {visitingTeam}
             </p>
             {date && <p className="text-[10px] text-on-surface-variant opacity-60 mt-0.5">{date}</p>}
           </div>
@@ -121,7 +128,11 @@ function JornadaHistorialCard({ jornada }) {
             const score = buildScoreString(court.matchState);
             const players = court.myPlayers.filter(Boolean).join(' / ') || '—';
             return (
-              <div key={court.id} className="flex items-center gap-2">
+              <button
+                key={court.id}
+                onClick={() => navigate('/marcador', { state: { court, jornada, returnTo: '/historial' } })}
+                className="flex items-center gap-2 w-full text-left hover:bg-white/5 rounded-xl px-2 py-1 -mx-2 transition-colors active:scale-[0.98]"
+              >
                 <span className={`material-symbols-outlined text-base shrink-0 ${won ? 'text-primary' : lost ? 'text-error' : 'text-on-surface-variant/40'}`}
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
@@ -134,7 +145,8 @@ function JornadaHistorialCard({ jornada }) {
                     {score}
                   </span>
                 )}
-              </div>
+                <span className="material-symbols-outlined text-on-surface-variant/30 text-sm shrink-0">edit</span>
+              </button>
             );
           })}
         </div>

@@ -93,7 +93,9 @@ export function useJornada(id) {
     const updatedCourts = data.courts.map(c =>
       c.id === courtId ? { ...c, ...patch } : c
     );
-    await setDoc(ref, { ...data, courts: updatedCourts });
+    const allCourtsFinished = updatedCourts.every(c => c.winner != null);
+    const statusPatch = { status: allCourtsFinished ? 'finished' : 'active' };
+    await setDoc(ref, { ...data, courts: updatedCourts, ...statusPatch });
   }, [id]);
 
   const finishJornada = useCallback(async () => {
