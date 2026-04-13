@@ -1,11 +1,14 @@
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { getJornadaWinner } from '../hooks/useLocalTeams';
-import { useActiveJornada } from '../hooks/useActiveJornada';
+import { useJornada } from '../hooks/useJornadas';
 
 export default function Jornada() {
   const navigate = useNavigate();
-  const { jornada, clearJornada } = useActiveJornada();
+  const { id } = useParams();
+  const { jornada, finishJornada } = useJornada(id);
+  const [copied, setCopied] = useState(false);
 
   // Loading state while Firestore responds
   if (jornada === undefined) {
@@ -39,6 +42,17 @@ export default function Jornada() {
   const totalCourts = courts.length;
   const needed = Math.ceil(totalCourts / 2);
 
+  const handleShare = async () => {
+    const text = buildShareText(jornada);
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch (_) { /* usuario canceló */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const handleCourtTap = (court) => {
     // Always allow entering a court to view or edit the result
     navigate('/marcador', {
@@ -47,8 +61,8 @@ export default function Jornada() {
   };
 
   const handleNewJornada = async () => {
-    await clearJornada();
-    navigate('/');
+    await finishJornada();
+    navigate('/nueva-jornada');
   };
 
   return (
@@ -68,12 +82,25 @@ export default function Jornada() {
               {date && <span className="ml-2 opacity-50">· {date}</span>}
             </p>
           </div>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-on-surface-variant hover:text-white p-2 rounded-full bg-surface-container-high transition-colors"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="relative text-on-surface-variant hover:text-white p-2 rounded-full bg-surface-container-high transition-colors"
+            >
+              <span className="material-symbols-outlined">share</span>
+              {copied && (
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-background text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">
+                  ¡Copiado!
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="text-on-surface-variant hover:text-white p-2 rounded-full bg-surface-container-high transition-colors"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+          </div>
         </div>
 
         {/* Global Score Card */}
@@ -126,12 +153,21 @@ export default function Jornada() {
               {jornadaWinner === 'mine' ? `¡${myTeam.name} gana la jornada!` : `${visitingTeam} gana la jornada`}
             </p>
             <p className="text-on-surface-variant text-xs mt-1">{myWins} – {theirWins}</p>
-            <button
-              onClick={handleNewJornada}
-              className="mt-3 bg-surface-container-low text-on-surface lexend font-bold py-2 px-5 rounded-xl text-sm hover:bg-surface-container-highest transition-colors"
-            >
-              Nueva Jornada
-            </button>
+            <div className="flex gap-2 justify-center mt-3">
+              <button
+                onClick={handleShare}
+                className="bg-primary/20 text-primary lexend font-bold py-2 px-4 rounded-xl text-sm flex items-center gap-1.5 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-base">share</span>
+                Compartir
+              </button>
+              <button
+                onClick={handleNewJornada}
+                className="bg-surface-container-low text-on-surface lexend font-bold py-2 px-4 rounded-xl text-sm hover:bg-surface-container-high transition-colors"
+              >
+                Nueva Jornada
+              </button>
+            </div>
           </div>
         )}
 
@@ -152,6 +188,37 @@ export default function Jornada() {
       <BottomNav />
     </div>
   );
+}
+
+function buildShareText(jornada) {
+  const { myTeam, visitingTeam, date, courts } = jornada;
+  const myWins    = courts.filter(c => c.winner === 'mine').length;
+  const theirWins = courts.filter(c => c.winner === 'theirs').length;
+  const needed    = Math.ceil(courts.length / 2);
+  const jornadaWinner = myWins >= needed ? 'mine' : theirWins >= needed ? 'theirs' : null;
+
+  const lines = [
+    `🎾 *${myTeam.name} vs ${visitingTeam}*`,
+    date ? `📅 ${date}` : '',
+    '',
+    ...courts.map(c => {
+      const icon   = c.winner === 'mine' ? '✅' : c.winner === 'theirs' ? '❌' : '⏳';
+      const player = c.myPlayers.filter(Boolean).join(' / ') || '—';
+      const score  = buildScoreString(c.matchState);
+      return `${c.label} · ${player}   ${icon}${score ? '  ' + score : ''}`;
+    }),
+    '',
+    '─────────────────',
+  ];
+
+  if (jornadaWinner) {
+    const winner = jornadaWinner === 'mine' ? myTeam.name : visitingTeam;
+    lines.push(`🏆 *${winner} gana  ${myWins} – ${theirWins}*`);
+  } else {
+    lines.push(`Marcador: ${myTeam.name} ${myWins} – ${theirWins} ${visitingTeam}`);
+  }
+
+  return lines.filter(l => l !== null).join('\n');
 }
 
 function buildScoreString(matchState) {

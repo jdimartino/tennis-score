@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useTennisGames, getSetStatus } from '../hooks/useTennisGames';
-import { useActiveJornada } from '../hooks/useActiveJornada';
+import { useJornada } from '../hooks/useJornadas';
 
 export default function Marcador() {
   const location = useLocation();
   const navigate = useNavigate();
   const { court, jornada } = location.state || {};
-  const { updateCourt } = useActiveJornada();
+  const { updateCourt } = useJornada(jornada?.id);
 
   const localLabel = court?.myPlayers?.filter(Boolean).join(' / ') || 'Mi Equipo';
   const visitLabel = jornada?.visitingTeam || 'Rival';
@@ -32,7 +32,7 @@ export default function Marcador() {
   // Save final result (match over) and go back
   const saveFinalAndGoBack = async (winner) => {
     if (court && jornada) {
-      await updateCourt(court.id, { winner, matchState: null });
+      await updateCourt(court.id, { winner, matchState: state });
     }
     navigate('/jornada');
   };

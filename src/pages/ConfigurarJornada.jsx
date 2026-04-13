@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { getLeagueFormat } from '../hooks/useLocalTeams';
-import { useActiveJornada } from '../hooks/useActiveJornada';
+import { useJornadas } from '../hooks/useJornadas';
 
 export default function ConfigurarJornada() {
   const location = useLocation();
   const navigate = useNavigate();
   const { myTeam, visitingTeam, date } = location.state || {};
-  const { saveJornada } = useActiveJornada();
+  const { createJornada } = useJornadas();
   const [saving, setSaving] = useState(false);
 
   // Redirect back if accessed directly without state
@@ -40,8 +40,8 @@ export default function ConfigurarJornada() {
       matchState: null,
     }));
     const jornada = { myTeam, visitingTeam, date, courts };
-    await saveJornada(jornada);
-    navigate('/jornada');
+    const id = await createJornada(jornada);
+    navigate('/jornada/' + id);
   };
 
   const hasAnyName = courtTemplate.some(c =>

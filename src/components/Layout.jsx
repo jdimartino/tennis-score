@@ -2,25 +2,25 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 export function Header() {
   return (
-    <header className="pt-12 pb-6 px-6 bg-gradient-to-b from-background to-transparent z-10 relative">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="lexend text-4xl font-extrabold tracking-tight text-white mb-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-            JDMRules
-          </h1>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            <p className="font-['Inter'] text-primary font-semibold tracking-[0.2em] uppercase text-xs">
-              Tennis
-            </p>
+    <header className="pt-8 pb-3 px-5 bg-gradient-to-b from-background to-transparent z-10 relative">
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+            <span className="lexend text-primary font-bold text-[10px]">JDM</span>
+          </div>
+          <div>
+            <h1 className="lexend text-xl font-extrabold tracking-tight text-white leading-none">
+              JDMRules
+            </h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-1 h-1 rounded-full bg-primary animate-pulse"></span>
+              <p className="font-['Inter'] text-primary font-semibold tracking-[0.15em] uppercase text-[9px]">
+                Como va la Jornada?
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="bg-surface-container-low p-2 rounded-2xl border border-white/5 shadow-inner">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-            <span className="lexend text-primary font-bold text-sm">JDM</span>
-          </div>
-        </div>
+        <span className="text-2xl select-none">🎾</span>
       </div>
 
       {/* Decorative Line */}
@@ -34,8 +34,9 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/jornada', icon: 'scoreboard', label: 'Jornada', fill: true },
-    { path: '/', icon: 'tune', label: 'Config', fill: false },
+    { path: '/',           icon: 'home',          label: 'Inicio',   fill: true },
+    { path: '/historial',  icon: 'history',       label: 'Historial', fill: false },
+    { path: '/nueva-jornada', icon: 'add_circle', label: 'Nueva',    fill: true },
   ];
 
   return (
