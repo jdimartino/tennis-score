@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useJornadas } from '../hooks/useJornadas';
@@ -5,7 +6,7 @@ import { getJornadaWinner } from '../hooks/useLocalTeams';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { jornadas } = useJornadas();
+  const { jornadas, deleteJornada } = useJornadas();
 
   return (
     <div className="min-h-screen bg-background pb-32 font-sans text-on-surface">
@@ -43,7 +44,7 @@ export default function Home() {
         {jornadas && jornadas.length > 0 && (
           <div className="flex flex-col gap-3">
             {jornadas.map(j => (
-              <JornadaCard key={j.id} jornada={j} onTap={() => navigate(`/jornada/${j.id}`)} />
+              <JornadaCard key={j.id} jornada={j} onTap={() => navigate(`/jornada/${j.id}`)} onDelete={() => deleteJornada(j.id)} />
             ))}
           </div>
         )}
@@ -65,61 +66,93 @@ export default function Home() {
   );
 }
 
-function JornadaCard({ jornada, onTap }) {
+function JornadaCard({ jornada, onTap, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
   const { myTeam, visitingTeam, date, courts } = jornada;
   const myWins    = courts.filter(c => c.winner === 'mine').length;
   const theirWins = courts.filter(c => c.winner === 'theirs').length;
-  const played    = courts.filter(c => c.winner).length;
-  const total     = courts.length;
-  const needed    = Math.ceil(total / 2);
   const jornadaWinner = getJornadaWinner(courts);
   const inProgress = courts.some(c => !c.winner && c.matchState);
 
   return (
-    <button
-      onClick={onTap}
-      className="w-full text-left bg-surface-container-high rounded-2xl p-4 border border-white/5 hover:border-white/10 active:scale-[0.98] transition-all"
-    >
-      <div className="flex items-center gap-3">
-        {/* Score */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="lexend text-2xl font-black text-primary">{myWins}</span>
-          <span className="lexend text-sm font-black text-on-surface-variant opacity-30">—</span>
-          <span className="lexend text-2xl font-black text-secondary">{theirWins}</span>
-        </div>
+    <div className="relative w-full bg-surface-container-high rounded-2xl border border-white/5 hover:border-white/10 transition-all overflow-hidden">
+      {/* Botón de papelera */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
+        className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-on-surface-variant hover:text-error transition-colors"
+      >
+        <span className="material-symbols-outlined text-base">delete</span>
+      </button>
 
-        {/* Info + progress */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <div className="min-w-0">
-              <p className="lexend font-bold text-sm text-white leading-snug">{myTeam.name}</p>
-              <p className="lexend text-xs text-on-surface-variant leading-snug">
-                <span className="opacity-50">vs</span> {visitingTeam}
-              </p>
-              {date && <p className="text-[10px] text-on-surface-variant opacity-50 mt-0.5">{date}</p>}
+      {/* Área de navegación */}
+      <button
+        onClick={onTap}
+        className="w-full text-left p-4 pr-10 active:scale-[0.98] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          {/* Score */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="lexend text-2xl font-black text-primary">{myWins}</span>
+            <span className="lexend text-sm font-black text-on-surface-variant opacity-30">—</span>
+            <span className="lexend text-2xl font-black text-secondary">{theirWins}</span>
+          </div>
+
+          {/* Info + progress */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="min-w-0">
+                <p className="lexend font-bold text-sm text-white leading-snug">{myTeam.name}</p>
+                <p className="lexend text-xs text-on-surface-variant leading-snug">
+                  <span className="opacity-50">vs</span> {visitingTeam}
+                </p>
+                {date && <p className="text-[10px] text-on-surface-variant opacity-50 mt-0.5">{date}</p>}
+              </div>
+              {jornadaWinner ? (
+                <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${
+                  jornadaWinner === 'mine' ? 'bg-primary/15 text-primary' : 'bg-error/15 text-error'
+                }`}>{jornadaWinner === 'mine' ? 'Ganada' : 'Perdida'}</span>
+              ) : inProgress ? (
+                <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-secondary/15 text-secondary">En curso</span>
+              ) : (
+                <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-white/5 text-on-surface-variant">Pendiente</span>
+              )}
             </div>
-            {jornadaWinner ? (
-              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 ${
-                jornadaWinner === 'mine' ? 'bg-primary/15 text-primary' : 'bg-error/15 text-error'
-              }`}>{jornadaWinner === 'mine' ? 'Ganada' : 'Perdida'}</span>
-            ) : inProgress ? (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-secondary/15 text-secondary">En curso</span>
-            ) : (
-              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 mt-0.5 bg-white/5 text-on-surface-variant">Pendiente</span>
-            )}
+            {/* Court progress bar */}
+            <div className="flex gap-0.5">
+              {courts.map(c => (
+                <div key={c.id} className={`flex-1 h-1 rounded-full ${
+                  c.winner === 'mine' ? 'bg-primary' : c.winner === 'theirs' ? 'bg-secondary' : c.matchState ? 'bg-secondary/30' : 'bg-white/10'
+                }`} />
+              ))}
+            </div>
           </div>
-          {/* Court progress bar */}
-          <div className="flex gap-0.5">
-            {courts.map(c => (
-              <div key={c.id} className={`flex-1 h-1 rounded-full ${
-                c.winner === 'mine' ? 'bg-primary' : c.winner === 'theirs' ? 'bg-secondary' : c.matchState ? 'bg-secondary/30' : 'bg-white/10'
-              }`} />
-            ))}
+
+          <span className="material-symbols-outlined text-on-surface-variant shrink-0 text-lg">chevron_right</span>
+        </div>
+      </button>
+
+      {/* Overlay de confirmación */}
+      {confirming && (
+        <div className="absolute inset-0 bg-surface-container-high/97 rounded-2xl flex flex-col items-center justify-center gap-3 z-20 p-5">
+          <span className="material-symbols-outlined text-3xl text-error" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+          <p className="lexend font-bold text-sm text-white text-center">¿Eliminar esta jornada?</p>
+          <p className="text-xs text-on-surface-variant text-center">Esta acción no se puede deshacer.</p>
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => setConfirming(false)}
+              className="flex-1 py-2 rounded-xl bg-white/10 lexend font-bold text-sm text-on-surface-variant active:scale-[0.97] transition-transform"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex-1 py-2 rounded-xl bg-error lexend font-bold text-sm text-white active:scale-[0.97] transition-transform"
+            >
+              Eliminar
+            </button>
           </div>
         </div>
-
-        <span className="material-symbols-outlined text-on-surface-variant shrink-0 text-lg">chevron_right</span>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useTennisGames, getSetStatus } from '../hooks/useTennisGames';
@@ -9,7 +8,6 @@ export default function Marcador() {
   const navigate = useNavigate();
   const { court, jornada, returnTo = '/' } = location.state || {};
   const { updateCourt } = useJornada(jornada?.id);
-  const [wasEdited, setWasEdited] = useState(false);
 
   const localLabel = court?.myPlayers?.filter(Boolean).join(' / ') || 'Mi Equipo';
   const visitLabel = jornada?.visitingTeam || 'Rival';
@@ -185,21 +183,12 @@ export default function Marcador() {
             </div>
 
             {jornada ? (
-              wasEdited ? (
-                <button
-                  onClick={() => saveFinalAndGoBack(state.winner === 0 ? 'mine' : 'theirs')}
-                  className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
-                >
-                  Guardar y Volver
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate(returnTo)}
-                  className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
-                >
-                  Volver
-                </button>
-              )
+              <button
+                onClick={() => saveFinalAndGoBack(state.winner === 0 ? 'mine' : 'theirs')}
+                className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all"
+              >
+                Guardar y Volver
+              </button>
             ) : (
               <button
                 onClick={() => navigate('/')}
@@ -210,7 +199,7 @@ export default function Marcador() {
             )}
             {jornada && (
               <button
-                onClick={() => { reset({ localTeam: localLabel, visitingTeam: visitLabel, bestOf: 3 }); setWasEdited(true); }}
+                onClick={() => reset({ localTeam: localLabel, visitingTeam: visitLabel, bestOf: 3 })}
                 className="w-full bg-surface-container-low text-on-surface-variant lexend font-bold py-3 rounded-2xl hover:bg-surface-container-highest transition-colors active:scale-[0.98] text-sm"
               >
                 Editar marcador

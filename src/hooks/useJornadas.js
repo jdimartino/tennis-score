@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   collection, doc, onSnapshot, query, where,
-  addDoc, setDoc, getDoc,
+  addDoc, setDoc, getDoc, deleteDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -40,7 +40,12 @@ export function useJornadas() {
     return ref.id;
   }, []);
 
-  return { jornadas, createJornada };
+  const deleteJornada = useCallback(async (id) => {
+    const ref = doc(db, 'jornadas', id);
+    await deleteDoc(ref);
+  }, []);
+
+  return { jornadas, createJornada, deleteJornada };
 }
 
 /**

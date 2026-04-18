@@ -46,7 +46,7 @@ function reducer(state, action) {
       newCurrent[player] += 1;
 
       if (newCurrent[player] > 7) return state;
-      if (newCurrent[player] === 7 && newCurrent[opp] < 6) return state;
+      if (newCurrent[player] === 7 && newCurrent[opp] < 5) return state;
 
       const setWinner = checkSetWinner(newCurrent[0], newCurrent[1]);
 
