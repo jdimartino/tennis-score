@@ -5,6 +5,7 @@ import ConfigurarJornada from './pages/ConfigurarJornada';
 import Jornada from './pages/Jornada';
 import Marcador from './pages/Marcador';
 import Historial from './pages/Historial';
+import Live from './pages/Live';
 import './index.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/jornada/:id" element={<Jornada />} />
         <Route path="/marcador" element={<Marcador />} />
         <Route path="/historial" element={<Historial />} />
+        <Route path="/live/:id" element={<Live />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

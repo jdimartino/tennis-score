@@ -53,6 +53,19 @@ export default function Jornada() {
     }
   };
 
+  const handleShareLive = async () => {
+    const liveUrl = `${window.location.origin}/live/${jornada.id}`;
+    const title = `${myTeam.name} vs ${visitingTeam}`;
+    const text = '🎾 Sigue el marcador en vivo:';
+    if (navigator.share) {
+      try { await navigator.share({ title, text, url: liveUrl }); } catch (_) { /* usuario canceló */ }
+    } else {
+      await navigator.clipboard.writeText(liveUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const handleCourtTap = (court) => {
     // Always allow entering a court to view or edit the result
     navigate('/marcador', {
@@ -84,8 +97,16 @@ export default function Jornada() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={handleShareLive}
+              className="relative text-on-surface-variant hover:text-primary p-2 rounded-full bg-surface-container-high transition-colors"
+              title="Compartir enlace en vivo"
+            >
+              <span className="material-symbols-outlined">link</span>
+            </button>
+            <button
               onClick={handleShare}
               className="relative text-on-surface-variant hover:text-white p-2 rounded-full bg-surface-container-high transition-colors"
+              title="Compartir resumen"
             >
               <span className="material-symbols-outlined">share</span>
               {copied && (
@@ -233,7 +254,7 @@ function buildScoreString(matchState) {
   return sets.join('  ');
 }
 
-function CourtRow({ court, myTeamName, visitingTeam, onTap }) {
+function CourtRow({ court, onTap }) {
   const isDoubles = court.type === 'doubles';
   const won       = court.winner === 'mine';
   const lost      = court.winner === 'theirs';
@@ -280,15 +301,15 @@ function CourtRow({ court, myTeamName, visitingTeam, onTap }) {
               {isDoubles ? 'D' : 'S'}
             </span>
           </div>
-          <p className="text-on-surface-variant text-xs mt-0.5 truncate">{playerDisplay}</p>
+          <p className="text-on-surface-variant text-[13px] mt-0.5 truncate">{playerDisplay}</p>
         </div>
 
         {/* Result / Edit icon */}
         <div className="shrink-0 flex flex-col items-end gap-0.5">
           <div className="flex items-center gap-2">
-            {won        && <span className="lexend text-xs font-bold text-primary">GANADO</span>}
-            {lost       && <span className="lexend text-xs font-bold text-error">PERDIDO</span>}
-            {inProgress && <span className="lexend text-xs font-bold text-secondary">EN CURSO</span>}
+            {won        && <span className="lexend text-[13px] font-bold text-primary">GANADO</span>}
+            {lost       && <span className="lexend text-[13px] font-bold text-error">PERDIDO</span>}
+            {inProgress && <span className="lexend text-[13px] font-bold text-secondary">EN CURSO</span>}
             {(hasResult || inProgress) && (
               <span className={`material-symbols-outlined text-base ${
                 won ? 'text-primary/50' : lost ? 'text-error/50' : 'text-secondary/50'
@@ -297,7 +318,7 @@ function CourtRow({ court, myTeamName, visitingTeam, onTap }) {
             {pending && <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>}
           </div>
           {scoreString && (
-            <span className={`lexend text-[11px] font-bold tracking-wide ${
+            <span className={`lexend text-xs font-bold tracking-wide ${
               won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'
             }`}>
               {scoreString}
