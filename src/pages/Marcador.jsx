@@ -23,10 +23,12 @@ export default function Marcador() {
   const isTiebreak = !state.isMatchOver && state.current[0] === 6 && state.current[1] === 6 && !(state.setsWon[0] === 1 && state.setsWon[1] === 1);
   const isSuperTie = !state.isMatchOver && state.setsWon[0] === 1 && state.setsWon[1] === 1;
 
+  const isHistorialEdit = jornada?.status === 'finished';
+
   // Save partial state (mid-match) and go back
   const savePartialAndGoBack = async () => {
     if (court && jornada) {
-      await updateCourt(court.id, { matchState: state });
+      await updateCourt(court.id, { matchState: state }, { preserveFinished: isHistorialEdit });
     }
     navigate(returnTo);
   };
@@ -34,7 +36,7 @@ export default function Marcador() {
   // Save final result (match over) and go back
   const saveFinalAndGoBack = async (winner) => {
     if (court && jornada) {
-      await updateCourt(court.id, { winner, matchState: state });
+      await updateCourt(court.id, { winner, matchState: state }, { preserveFinished: isHistorialEdit });
     }
     navigate(returnTo);
   };

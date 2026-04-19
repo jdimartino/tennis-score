@@ -89,7 +89,7 @@ export function useJornada(id) {
     return unsub;
   }, [id]);
 
-  const updateCourt = useCallback(async (courtId, patch) => {
+  const updateCourt = useCallback(async (courtId, patch, { preserveFinished = false } = {}) => {
     if (!id) return;
     const ref = doc(db, 'jornadas', id);
     const snap = await getDoc(ref);
@@ -99,7 +99,9 @@ export function useJornada(id) {
       c.id === courtId ? { ...c, ...patch } : c
     );
     const allCourtsFinished = updatedCourts.every(c => c.winner != null);
-    const statusPatch = { status: allCourtsFinished ? 'finished' : 'active' };
+    const statusPatch = preserveFinished
+      ? { status: 'finished' }
+      : { status: allCourtsFinished ? 'finished' : 'active' };
     await setDoc(ref, { ...data, courts: updatedCourts, ...statusPatch });
   }, [id]);
 

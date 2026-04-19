@@ -53,6 +53,37 @@ export default function Historial() {
   );
 }
 
+function buildShareText(jornada) {
+  const { myTeam, visitingTeam, date, courts } = jornada;
+  const myWins    = courts.filter(c => c.winner === 'mine').length;
+  const theirWins = courts.filter(c => c.winner === 'theirs').length;
+  const needed    = Math.ceil(courts.length / 2);
+  const jornadaWinner = myWins >= needed ? 'mine' : theirWins >= needed ? 'theirs' : null;
+
+  const lines = [
+    `🎾 *${myTeam.name} vs ${visitingTeam}*`,
+    date ? `📅 ${date}` : '',
+    '',
+    ...courts.map(c => {
+      const icon   = c.winner === 'mine' ? '✅' : c.winner === 'theirs' ? '❌' : '⏳';
+      const player = c.myPlayers.filter(Boolean).join(' / ') || '—';
+      const score  = buildScoreString(c.matchState);
+      return `${c.label} · ${player}   ${icon}${score ? '  ' + score : ''}`;
+    }),
+    '',
+    '─────────────────',
+  ];
+
+  if (jornadaWinner) {
+    const winner = jornadaWinner === 'mine' ? myTeam.name : visitingTeam;
+    lines.push(`🏆 *${winner} gana  ${myWins} – ${theirWins}*`);
+  } else {
+    lines.push(`Marcador: ${myTeam.name} ${myWins} – ${theirWins} ${visitingTeam}`);
+  }
+
+  return lines.filter(l => l !== null).join('\n');
+}
+
 function buildScoreString(matchState) {
   if (!matchState) return null;
   const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
@@ -67,12 +98,25 @@ function buildScoreString(matchState) {
 
 function JornadaHistorialCard({ jornada }) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { myTeam, visitingTeam, date, courts } = jornada;
   const myWins    = courts.filter(c => c.winner === 'mine').length;
   const theirWins = courts.filter(c => c.winner === 'theirs').length;
   const jornadaWinner = getJornadaWinner(courts);
   const weWon = jornadaWinner === 'mine';
+
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const text = buildShareText(jornada);
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch (_) { /* usuario canceló */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className={`rounded-2xl border transition-all ${
@@ -105,13 +149,24 @@ function JornadaHistorialCard({ jornada }) {
             {date && <p className="text-[10px] text-on-surface-variant opacity-60 mt-0.5">{date}</p>}
           </div>
 
-          {/* Score + chevron */}
+          {/* Score + share + chevron */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-1.5">
               <span className={`lexend text-xl font-black ${weWon ? 'text-primary' : 'text-on-surface-variant'}`}>{myWins}</span>
               <span className="lexend text-sm text-on-surface-variant opacity-30">–</span>
               <span className={`lexend text-xl font-black ${!weWon ? 'text-error' : 'text-on-surface-variant'}`}>{theirWins}</span>
             </div>
+            <button
+              onClick={handleShare}
+              className="relative p-1.5 rounded-full bg-white/5 text-on-surface-variant hover:text-white transition-colors"
+            >
+              <span className="material-symbols-outlined text-base leading-none">share</span>
+              {copied && (
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-background text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap">
+                  ¡Copiado!
+                </span>
+              )}
+            </button>
             <span className={`material-symbols-outlined text-on-surface-variant text-lg transition-transform ${expanded ? 'rotate-180' : ''}`}>
               expand_more
             </span>
@@ -131,21 +186,26 @@ function JornadaHistorialCard({ jornada }) {
               <button
                 key={court.id}
                 onClick={() => navigate('/marcador', { state: { court, jornada, returnTo: '/historial' } })}
-                className="flex items-center gap-2 w-full text-left hover:bg-white/5 rounded-xl px-2 py-1 -mx-2 transition-colors active:scale-[0.98]"
+                className="flex flex-col w-full text-left hover:bg-white/5 rounded-xl px-2 py-1.5 -mx-2 transition-colors active:scale-[0.98] gap-0.5"
               >
-                <span className={`material-symbols-outlined text-base shrink-0 ${won ? 'text-primary' : lost ? 'text-error' : 'text-on-surface-variant/40'}`}
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  {won ? 'check_circle' : lost ? 'cancel' : 'radio_button_unchecked'}
-                </span>
-                <span className="lexend text-xs text-on-surface-variant shrink-0">{court.label}</span>
-                <span className="text-xs text-on-surface-variant/50 truncate flex-1">{players}</span>
-                {score && (
-                  <span className={`lexend text-[11px] font-bold shrink-0 ${won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'}`}>
-                    {score}
+                <div className="flex items-center gap-2 w-full">
+                  <span className={`material-symbols-outlined text-base shrink-0 ${won ? 'text-primary' : lost ? 'text-error' : 'text-on-surface-variant/40'}`}
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    {won ? 'check_circle' : lost ? 'cancel' : 'radio_button_unchecked'}
                   </span>
+                  <span className="lexend text-xs text-on-surface-variant shrink-0">{court.label}</span>
+                  <div className="flex-1" />
+                  {score && (
+                    <span className={`lexend text-[11px] font-bold shrink-0 ${won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'}`}>
+                      {score}
+                    </span>
+                  )}
+                  <span className="material-symbols-outlined text-on-surface-variant/30 text-sm shrink-0">edit</span>
+                </div>
+                {players !== '—' && (
+                  <p className="text-xs text-on-surface-variant/50 leading-snug ml-6 break-words">{players}</p>
                 )}
-                <span className="material-symbols-outlined text-on-surface-variant/30 text-sm shrink-0">edit</span>
               </button>
             );
           })}
