@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
 import { useTennisGames, getSetStatus } from '../hooks/useTennisGames';
@@ -12,7 +13,7 @@ export default function Marcador() {
   const localLabel = court?.myPlayers?.filter(Boolean).join(' / ') || 'Mi Equipo';
   const visitLabel = jornada?.visitingTeam || 'Rival';
 
-  const { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset } = useTennisGames({
+  const { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset, updateSetScore, updateTieScore, updateSuperTieScore } = useTennisGames({
     localTeam:    localLabel,
     visitingTeam: visitLabel,
     bestOf:       3,
@@ -24,6 +25,55 @@ export default function Marcador() {
   const isSuperTie = !state.isMatchOver && state.setsWon[0] === 1 && state.setsWon[1] === 1;
 
   const isHistorialEdit = jornada?.status === 'finished';
+  const [editingIndex, setEditingIndex] = useState(null);
+
+  const handleEditGames = (setIndex, player, delta) => {
+    const set = state.completedSets[setIndex];
+    const newGames = [...set.games];
+    if (newGames[player] + delta < 0) return;
+    newGames[player] += delta;
+
+    updateSetScore(setIndex, newGames);
+
+    const newCompleted = [...state.completedSets];
+    newCompleted[setIndex] = { ...set, games: newGames };
+    const newState = { ...state, completedSets: newCompleted };
+    if (court && jornada) {
+      updateCourt(court.id, { matchState: newState }, { preserveFinished: isHistorialEdit });
+    }
+  };
+
+  const handleEditTiebreak = (setIndex, player, delta) => {
+    const set = state.completedSets[setIndex];
+    const newTiebreak = [...set.tiebreak];
+    if (newTiebreak[player] + delta < 0) return;
+    newTiebreak[player] += delta;
+
+    updateTieScore(setIndex, set.games, newTiebreak);
+
+    const newCompleted = [...state.completedSets];
+    newCompleted[setIndex] = { ...set, tiebreak: newTiebreak };
+    const newState = { ...state, completedSets: newCompleted };
+    if (court && jornada) {
+      updateCourt(court.id, { matchState: newState }, { preserveFinished: isHistorialEdit });
+    }
+  };
+
+  const handleEditSuperTie = (setIndex, player, delta) => {
+    const set = state.completedSets[setIndex];
+    const newSuperTie = [...set.superTie];
+    if (newSuperTie[player] + delta < 0) return;
+    newSuperTie[player] += delta;
+
+    updateSuperTieScore(setIndex, newSuperTie);
+
+    const newCompleted = [...state.completedSets];
+    newCompleted[setIndex] = { ...set, superTie: newSuperTie };
+    const newState = { ...state, completedSets: newCompleted };
+    if (court && jornada) {
+      updateCourt(court.id, { matchState: newState }, { preserveFinished: isHistorialEdit });
+    }
+  };
 
   // Save partial state (mid-match) and go back
   const savePartialAndGoBack = async () => {
@@ -75,26 +125,75 @@ export default function Marcador() {
             {state.completedSets.map((s, i) => {
               if (s.superTie) {
                 const stWinner = s.superTie[0] > s.superTie[1] ? 0 : 1;
+                const isEditing = editingIndex === i;
                 return (
-                  <div key={i} className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
-                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide">Super Tie</span>
-                    <span className={`lexend font-bold ${stWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.superTie[0]}</span>
-                    <span className="text-on-surface-variant opacity-40">–</span>
-                    <span className={`lexend font-bold ${stWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.superTie[1]}</span>
+                  <div key={i} className={`bg-amber-500/10 border ${isEditing ? 'border-amber-500' : 'border-amber-500/30'} rounded-xl px-3 py-1.5 flex items-center gap-1.5 text-xs`}>
+                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide mr-1">Super Tie</span>
+                    {isEditing ? (
+                      <>
+                        <button onClick={() => handleEditSuperTie(i, 0, -1)} className="w-5 h-5 rounded flex items-center justify-center bg-amber-500/20 text-amber-400 active:scale-90 transition-all">−</button>
+                        <span className="lexend font-bold text-amber-400 w-4 text-center">{s.superTie[0]}</span>
+                        <button onClick={() => handleEditSuperTie(i, 0, 1)} className="w-5 h-5 rounded flex items-center justify-center bg-amber-500/20 text-amber-400 active:scale-90 transition-all">+</button>
+                        <span className="text-on-surface-variant opacity-40">–</span>
+                        <button onClick={() => handleEditSuperTie(i, 1, -1)} className="w-5 h-5 rounded flex items-center justify-center bg-amber-500/20 text-amber-400 active:scale-90 transition-all">−</button>
+                        <span className="lexend font-bold text-amber-400 w-4 text-center">{s.superTie[1]}</span>
+                        <button onClick={() => handleEditSuperTie(i, 1, 1)} className="w-5 h-5 rounded flex items-center justify-center bg-amber-500/20 text-amber-400 active:scale-90 transition-all">+</button>
+                        <button onClick={() => setEditingIndex(null)} className="w-5 h-5 rounded flex items-center justify-center text-amber-400/50 hover:text-amber-400 transition-colors">✕</button>
+                      </>
+                    ) : (
+                      <>
+                        <span className={`lexend font-bold ${stWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.superTie[0]}</span>
+                        <span className="text-on-surface-variant opacity-40">–</span>
+                        <span className={`lexend font-bold ${stWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.superTie[1]}</span>
+                        <button onClick={() => setEditingIndex(i)} className="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant/30 hover:text-on-surface-variant transition-colors text-[10px]">✏️</button>
+                      </>
+                    )}
                   </div>
                 );
               }
               const setWinner = s.games[0] > s.games[1] ? 0 : 1;
               const loserTieScore = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
+              const hasTiebreak = s.tiebreak != null;
+              const isEditing = editingIndex === i;
               return (
-                <div key={i} className="bg-surface-container-high rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs">
-                  <span className={`lexend font-bold ${setWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.games[0]}</span>
-                  <span className="text-on-surface-variant opacity-40">–</span>
-                  <span className={`lexend font-bold ${setWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.games[1]}</span>
-                  {loserTieScore !== null && (
-                    <span className="text-on-surface-variant opacity-40 text-[10px]">({loserTieScore})</span>
+                <div key={i} className={`bg-surface-container-high rounded-xl px-3 py-1.5 flex items-center gap-1.5 text-xs ${isEditing ? 'ring-2 ring-primary/40' : ''}`}>
+                  {isEditing ? (
+                    <>
+                      <button onClick={() => handleEditGames(i, 0, -1)} className="w-5 h-5 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all">−</button>
+                      <span className={`lexend font-bold w-4 text-center ${setWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.games[0]}</span>
+                      <button onClick={() => handleEditGames(i, 0, 1)} className="w-5 h-5 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all">+</button>
+                      <span className="text-on-surface-variant opacity-40">–</span>
+                      <button onClick={() => handleEditGames(i, 1, -1)} className="w-5 h-5 rounded flex items-center justify-center bg-secondary/20 text-secondary active:scale-90 transition-all">−</button>
+                      <span className={`lexend font-bold w-4 text-center ${setWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.games[1]}</span>
+                      <button onClick={() => handleEditGames(i, 1, 1)} className="w-5 h-5 rounded flex items-center justify-center bg-secondary/20 text-secondary active:scale-90 transition-all">+</button>
+                      {hasTiebreak && (
+                        <>
+                          <span className="text-on-surface-variant opacity-30 ml-1">(</span>
+                          <button onClick={() => handleEditTiebreak(i, 0, -1)} className="w-4 h-4 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all text-[8px]">−</button>
+                          <span className="text-on-surface-variant opacity-40 text-[10px] w-3 text-center">{s.tiebreak[0]}</span>
+                          <button onClick={() => handleEditTiebreak(i, 0, 1)} className="w-4 h-4 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all text-[8px]">+</button>
+                          <span className="text-on-surface-variant opacity-30">–</span>
+                          <button onClick={() => handleEditTiebreak(i, 1, -1)} className="w-4 h-4 rounded flex items-center justify-center bg-secondary/20 text-secondary active:scale-90 transition-all text-[8px]">−</button>
+                          <span className="text-on-surface-variant opacity-40 text-[10px] w-3 text-center">{s.tiebreak[1]}</span>
+                          <button onClick={() => handleEditTiebreak(i, 1, 1)} className="w-4 h-4 rounded flex items-center justify-center bg-secondary/20 text-secondary active:scale-90 transition-all text-[8px]">+</button>
+                          <span className="text-on-surface-variant opacity-30">)</span>
+                        </>
+                      )}
+                      <button onClick={() => setEditingIndex(null)} className="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant/50 hover:text-on-surface-variant transition-colors">✕</button>
+                      <span className="text-on-surface-variant opacity-30 text-[10px]">S{i + 1}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={`lexend font-bold ${setWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.games[0]}</span>
+                      <span className="text-on-surface-variant opacity-40">–</span>
+                      <span className={`lexend font-bold ${setWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.games[1]}</span>
+                      {loserTieScore !== null && (
+                        <span className="text-on-surface-variant opacity-40 text-[10px]">({loserTieScore})</span>
+                      )}
+                      <span className="text-on-surface-variant opacity-30 text-[10px] ml-1">S{i + 1}</span>
+                      <button onClick={() => setEditingIndex(i)} className="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant/30 hover:text-on-surface-variant transition-colors text-[10px]">✏️</button>
+                    </>
                   )}
-                  <span className="text-on-surface-variant opacity-30 text-[10px] ml-1">S{i + 1}</span>
                 </div>
               );
             })}

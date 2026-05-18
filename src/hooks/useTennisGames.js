@@ -172,6 +172,27 @@ function reducer(state, action) {
     case 'RESET':
       return createInitialState(action.config);
 
+    case 'UPDATE_SET_SCORE': {
+      const { setIndex, games } = action;
+      const newCompleted = [...state.completedSets];
+      newCompleted[setIndex] = { ...newCompleted[setIndex], games };
+      return { ...state, completedSets: newCompleted };
+    }
+
+    case 'UPDATE_TIE_SCORE': {
+      const { setIndex, games, tiebreak } = action;
+      const newCompleted = [...state.completedSets];
+      newCompleted[setIndex] = { ...newCompleted[setIndex], games, tiebreak };
+      return { ...state, completedSets: newCompleted };
+    }
+
+    case 'UPDATE_SUPERTIE_SCORE': {
+      const { setIndex, superTie } = action;
+      const newCompleted = [...state.completedSets];
+      newCompleted[setIndex] = { ...newCompleted[setIndex], superTie };
+      return { ...state, completedSets: newCompleted };
+    }
+
     default:
       return state;
   }
@@ -187,8 +208,11 @@ export function useTennisGames(config) {
   const addSuperTiePoint    = useCallback((player) => dispatch({ type: 'ADD_SUPERTIE_POINT', player }), []);
   const removeSuperTiePoint = useCallback((player) => dispatch({ type: 'REMOVE_SUPERTIE_POINT', player }), []);
   const reset           = useCallback((newConfig) => dispatch({ type: 'RESET', config: newConfig }), []);
+  const updateSetScore      = useCallback((setIndex, games) => dispatch({ type: 'UPDATE_SET_SCORE', setIndex, games }), []);
+  const updateTieScore      = useCallback((setIndex, games, tiebreak) => dispatch({ type: 'UPDATE_TIE_SCORE', setIndex, games, tiebreak }), []);
+  const updateSuperTieScore = useCallback((setIndex, superTie) => dispatch({ type: 'UPDATE_SUPERTIE_SCORE', setIndex, superTie }), []);
 
-  return { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset };
+  return { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset, updateSetScore, updateTieScore, updateSuperTieScore };
 }
 
 export function getSetStatus(state) {
