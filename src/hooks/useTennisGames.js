@@ -15,6 +15,7 @@ function createInitialState(config = {}) {
     superTie: { points: [0, 0] },
     isMatchOver: false,
     winner: null,
+    pendingSet: null,
   };
 }
 
@@ -37,8 +38,7 @@ function reducer(state, action) {
   switch (action.type) {
 
     case 'ADD_GAME': {
-      if (state.isMatchOver) return state;
-      // Block game buttons when in super tie (1-1 sets)
+      if (state.isMatchOver || state.pendingSet) return state;
       if (state.setsWon[0] === 1 && state.setsWon[1] === 1) return state;
       const player = action.player;
       const opp = 1 - player;
@@ -51,26 +51,10 @@ function reducer(state, action) {
       const setWinner = checkSetWinner(newCurrent[0], newCurrent[1]);
 
       if (setWinner !== null) {
-        const newSetsWon = [...state.setsWon];
-        newSetsWon[setWinner] += 1;
-        const newCompleted = [...state.completedSets, { games: newCurrent }];
-
-        if (newSetsWon[setWinner] >= state.setsToWin) {
-          return {
-            ...state,
-            setsWon: newSetsWon,
-            completedSets: newCompleted,
-            current: [0, 0],
-            isMatchOver: true,
-            winner: setWinner,
-          };
-        }
         return {
           ...state,
-          setsWon: newSetsWon,
-          completedSets: newCompleted,
-          current: [0, 0],
-          tiebreak: { points: [0, 0] },
+          current: newCurrent,
+          pendingSet: { player: setWinner, type: 'game', prevCurrent: [...state.current] },
         };
       }
 
@@ -78,7 +62,7 @@ function reducer(state, action) {
     }
 
     case 'REMOVE_GAME': {
-      if (state.isMatchOver) return state;
+      if (state.isMatchOver || state.pendingSet) return state;
       if (state.setsWon[0] === 1 && state.setsWon[1] === 1) return state;
       const player = action.player;
       const newCurrent = [...state.current];
@@ -89,7 +73,7 @@ function reducer(state, action) {
 
     // ── TIE (tiebreak de set a 7 puntos) ──────────────────────────
     case 'ADD_TIE_POINT': {
-      if (state.isMatchOver) return state;
+      if (state.isMatchOver || state.pendingSet) return state;
       const player = action.player;
       const newPoints = [...state.tiebreak.points];
       newPoints[player] += 1;
@@ -97,31 +81,10 @@ function reducer(state, action) {
       const tieWinner = checkTieWinner(newPoints[0], newPoints[1], 7);
 
       if (tieWinner !== null) {
-        const newSetsWon = [...state.setsWon];
-        newSetsWon[tieWinner] += 1;
-        // The game score is 7-6 for the tiebreak winner
-        const tieGames = tieWinner === 0 ? [7, 6] : [6, 7];
-        const newCompleted = [...state.completedSets, { games: tieGames, tiebreak: newPoints }];
-
-        if (newSetsWon[tieWinner] >= state.setsToWin) {
-          return {
-            ...state,
-            setsWon: newSetsWon,
-            completedSets: newCompleted,
-            current: [0, 0],
-            tiebreak: { points: [0, 0] },
-            isMatchOver: true,
-            winner: tieWinner,
-          };
-        }
-        // Set done, continue match (may enter super tie if 1-1)
         return {
           ...state,
-          setsWon: newSetsWon,
-          completedSets: newCompleted,
-          current: [0, 0],
-          tiebreak: { points: [0, 0] },
-          superTie: { points: [0, 0] },
+          tiebreak: { points: newPoints },
+          pendingSet: { player: tieWinner, type: 'tiebreak', prevTiebreak: [...state.tiebreak.points] },
         };
       }
 
@@ -129,7 +92,7 @@ function reducer(state, action) {
     }
 
     case 'REMOVE_TIE_POINT': {
-      if (state.isMatchOver) return state;
+      if (state.isMatchOver || state.pendingSet) return state;
       const player = action.player;
       const newPoints = [...state.tiebreak.points];
       if (newPoints[player] === 0) return state;
@@ -139,7 +102,7 @@ function reducer(state, action) {
 
     // ── SUPER TIE (partido 1-1, a 10 puntos) ──────────────────────
     case 'ADD_SUPERTIE_POINT': {
-      if (state.isMatchOver) return state;
+      if (state.isMatchOver || state.pendingSet) return state;
       const player = action.player;
       const newPoints = [...state.superTie.points];
       newPoints[player] += 1;
@@ -147,13 +110,10 @@ function reducer(state, action) {
       const superWinner = checkTieWinner(newPoints[0], newPoints[1], 10);
 
       if (superWinner !== null) {
-        const newCompleted = [...state.completedSets, { superTie: newPoints }];
         return {
           ...state,
-          completedSets: newCompleted,
           superTie: { points: newPoints },
-          isMatchOver: true,
-          winner: superWinner,
+          pendingSet: { player: superWinner, type: 'supertie', prevSuperTie: [...state.superTie.points] },
         };
       }
 
@@ -161,12 +121,100 @@ function reducer(state, action) {
     }
 
     case 'REMOVE_SUPERTIE_POINT': {
-      if (state.isMatchOver) return state;
+      if (state.isMatchOver || state.pendingSet) return state;
       const player = action.player;
       const newPoints = [...state.superTie.points];
       if (newPoints[player] === 0) return state;
       newPoints[player] -= 1;
       return { ...state, superTie: { points: newPoints } };
+    }
+
+    case 'CONFIRM_SET': {
+      if (!state.pendingSet) return state;
+      const { player, type } = state.pendingSet;
+      const newSetsWon = [...state.setsWon];
+      newSetsWon[player] += 1;
+
+      let newCompleted;
+      if (type === 'game') {
+        newCompleted = [...state.completedSets, { games: [...state.current] }];
+      } else if (type === 'tiebreak') {
+        const tieGames = player === 0 ? [7, 6] : [6, 7];
+        newCompleted = [...state.completedSets, { games: tieGames, tiebreak: [...state.tiebreak.points] }];
+      } else if (type === 'supertie') {
+        newCompleted = [...state.completedSets, { superTie: [...state.superTie.points] }];
+      }
+
+      if (newSetsWon[player] >= state.setsToWin) {
+        return {
+          ...state,
+          setsWon: newSetsWon,
+          completedSets: newCompleted,
+          current: [0, 0],
+          tiebreak: { points: [0, 0] },
+          superTie: { points: [0, 0] },
+          isMatchOver: true,
+          winner: player,
+          pendingSet: null,
+        };
+      }
+
+      return {
+        ...state,
+        setsWon: newSetsWon,
+        completedSets: newCompleted,
+        current: [0, 0],
+        tiebreak: { points: [0, 0] },
+        superTie: { points: [0, 0] },
+        pendingSet: null,
+      };
+    }
+
+    case 'CANCEL_SET': {
+      if (!state.pendingSet) return state;
+      const { type: cancelType } = state.pendingSet;
+      if (cancelType === 'game') {
+        return { ...state, current: [...state.pendingSet.prevCurrent], pendingSet: null };
+      }
+      if (cancelType === 'tiebreak') {
+        return { ...state, tiebreak: { points: [...state.pendingSet.prevTiebreak] }, pendingSet: null };
+      }
+      if (cancelType === 'supertie') {
+        return { ...state, superTie: { points: [...state.pendingSet.prevSuperTie] }, pendingSet: null };
+      }
+      return state;
+    }
+
+    case 'REMOVE_SET': {
+      const { setIndex } = action;
+      const set = state.completedSets[setIndex];
+      if (!set) return state;
+
+      let setWinner;
+      if (set.superTie) {
+        setWinner = set.superTie[0] > set.superTie[1] ? 0 : 1;
+      } else {
+        setWinner = set.games[0] > set.games[1] ? 0 : 1;
+      }
+
+      const newSetsWon = [...state.setsWon];
+      newSetsWon[setWinner] = Math.max(0, newSetsWon[setWinner] - 1);
+
+      const newCompleted = [...state.completedSets];
+      newCompleted.splice(setIndex, 1);
+
+      const matchStillOver = newSetsWon[0] >= state.setsToWin || newSetsWon[1] >= state.setsToWin;
+
+      return {
+        ...state,
+        setsWon: newSetsWon,
+        completedSets: newCompleted,
+        current: [0, 0],
+        tiebreak: { points: [0, 0] },
+        superTie: { points: [0, 0] },
+        isMatchOver: matchStillOver,
+        winner: matchStillOver ? (newSetsWon[0] >= state.setsToWin ? 0 : 1) : null,
+      };
     }
 
     case 'RESET':
@@ -208,11 +256,14 @@ export function useTennisGames(config) {
   const addSuperTiePoint    = useCallback((player) => dispatch({ type: 'ADD_SUPERTIE_POINT', player }), []);
   const removeSuperTiePoint = useCallback((player) => dispatch({ type: 'REMOVE_SUPERTIE_POINT', player }), []);
   const reset           = useCallback((newConfig) => dispatch({ type: 'RESET', config: newConfig }), []);
+  const confirmSet      = useCallback(() => dispatch({ type: 'CONFIRM_SET' }), []);
+  const cancelSet       = useCallback(() => dispatch({ type: 'CANCEL_SET' }), []);
+  const removeSet       = useCallback((setIndex) => dispatch({ type: 'REMOVE_SET', setIndex }), []);
   const updateSetScore      = useCallback((setIndex, games) => dispatch({ type: 'UPDATE_SET_SCORE', setIndex, games }), []);
   const updateTieScore      = useCallback((setIndex, games, tiebreak) => dispatch({ type: 'UPDATE_TIE_SCORE', setIndex, games, tiebreak }), []);
   const updateSuperTieScore = useCallback((setIndex, superTie) => dispatch({ type: 'UPDATE_SUPERTIE_SCORE', setIndex, superTie }), []);
 
-  return { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset, updateSetScore, updateTieScore, updateSuperTieScore };
+  return { state, addGame, removeGame, addTiePoint, removeTiePoint, addSuperTiePoint, removeSuperTiePoint, reset, confirmSet, cancelSet, removeSet, updateSetScore, updateTieScore, updateSuperTieScore };
 }
 
 export function getSetStatus(state) {
