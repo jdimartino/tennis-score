@@ -1,11 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   collection, doc, onSnapshot, query, where,
-  addDoc, setDoc, getDoc, deleteDoc,
+  addDoc, setDoc, getDoc, deleteDoc, runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 const jornadasCol = collection(db, 'jornadas');
+
+/**
+ * Validate and repair matchState inconsistencies before saving.
+ * A set cannot be won without recording it in completedSets.
+ */
+function validateMatchState(ms) {
+  if (!ms) return ms;
+  const valid = { ...ms };
+
+  const totalCompleted = valid.completedSets ? valid.completedSets.length : 0;
+  const expectedSetsWon = [0, 0];
+  if (valid.completedSets) {
+    for (const set of valid.completedSets) {
+      if (set.superTie) {
+        expectedSetsWon[set.superTie[0] > set.superTie[1] ? 0 : 1] += 1;
+      } else if (set.games) {
+        expectedSetsWon[set.games[0] > set.games[1] ? 0 : 1] += 1;
+      }
+    }
+  }
+
+  if (valid.setsWon) {
+    if (valid.setsWon[0] !== expectedSetsWon[0] || valid.setsWon[1] !== expectedSetsWon[1]) {
+      valid.setsWon = [...expectedSetsWon];
+    }
+  }
+
+  const matchShouldBeOver = expectedSetsWon[0] >= (valid.setsToWin || 2)
+    || expectedSetsWon[1] >= (valid.setsToWin || 2);
+
+  if (valid.isMatchOver && !matchShouldBeOver) {
+    valid.isMatchOver = false;
+    valid.winner = null;
+  } else if (!valid.isMatchOver && matchShouldBeOver) {
+    valid.isMatchOver = true;
+    valid.winner = expectedSetsWon[0] > expectedSetsWon[1] ? 0 : 1;
+  }
+
+  return valid;
+}
 
 /**
  * useJornadas() — real-time list of active jornadas (for Home page).
@@ -92,17 +132,24 @@ export function useJornada(id) {
   const updateCourt = useCallback(async (courtId, patch, { preserveFinished = false } = {}) => {
     if (!id) return;
     const ref = doc(db, 'jornadas', id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const updatedCourts = data.courts.map(c =>
-      c.id === courtId ? { ...c, ...patch } : c
-    );
-    const allCourtsFinished = updatedCourts.every(c => c.winner != null);
-    const statusPatch = preserveFinished
-      ? { status: 'finished' }
-      : { status: allCourtsFinished ? 'finished' : 'active' };
-    await setDoc(ref, { ...data, courts: updatedCourts, ...statusPatch });
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const updatedCourts = data.courts.map(c => {
+        if (c.id !== courtId) return c;
+        const merged = { ...c, ...patch };
+        if (merged.matchState) {
+          merged.matchState = validateMatchState(merged.matchState);
+        }
+        return merged;
+      });
+      const allCourtsFinished = updatedCourts.every(c => c.winner != null);
+      const statusPatch = preserveFinished
+        ? { status: 'finished' }
+        : { status: allCourtsFinished ? 'finished' : 'active' };
+      transaction.set(ref, { ...data, courts: updatedCourts, ...statusPatch });
+    });
   }, [id]);
 
   const finishJornada = useCallback(async () => {

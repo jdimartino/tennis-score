@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, onSnapshot, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, deleteDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 const JORNADA_DOC = doc(db, 'jornadas', 'active');
@@ -23,13 +23,15 @@ export function useActiveJornada() {
   }, []);
 
   const updateCourt = useCallback(async (courtId, patch) => {
-    const snap = await getDoc(JORNADA_DOC);
-    if (!snap.exists()) return;
-    const active = snap.data();
-    const updatedCourts = active.courts.map(c =>
-      c.id === courtId ? { ...c, ...patch } : c
-    );
-    await setDoc(JORNADA_DOC, { ...active, courts: updatedCourts });
+    await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(JORNADA_DOC);
+      if (!snap.exists()) return;
+      const active = snap.data();
+      const updatedCourts = active.courts.map(c =>
+        c.id === courtId ? { ...c, ...patch } : c
+      );
+      transaction.set(JORNADA_DOC, { ...active, courts: updatedCourts });
+    });
   }, []);
 
   const clearJornada = useCallback(async () => {

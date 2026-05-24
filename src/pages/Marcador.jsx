@@ -118,8 +118,9 @@ export default function Marcador() {
 
   // Save partial state (mid-match) and go back
   const savePartialAndGoBack = async () => {
+    if (state.pendingSet) return;
     if (court && jornada) {
-      await updateCourt(court.id, { matchState: state }, { preserveFinished: isHistorialEdit });
+      await updateCourt(court.id, { matchState: state, winner: null }, { preserveFinished: isHistorialEdit });
     }
     navigate(returnTo);
   };
@@ -148,7 +149,10 @@ export default function Marcador() {
           </div>
           <div className="flex items-center gap-2">
             {jornada && (
-              <button onClick={savePartialAndGoBack} className="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-white transition-colors">
+              <button onClick={() => {
+                if (state.pendingSet) { navigate(returnTo); return; }
+                savePartialAndGoBack();
+              }} className="p-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-white transition-colors">
                 <span className="material-symbols-outlined">arrow_back</span>
               </button>
             )}
@@ -355,7 +359,10 @@ export default function Marcador() {
 
             {jornada ? (
               <button
-                onClick={() => saveFinalAndGoBack(state.winner === 0 ? 'mine' : 'theirs')}
+                onClick={() => {
+                  if (state.winner === null) return;
+                  saveFinalAndGoBack(state.winner === 0 ? 'mine' : 'theirs');
+                }}
                 className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary-container lexend font-bold py-4 rounded-2xl active:scale-[0.98] transition-all shadow-lg shadow-primary/30 animate-pulse"
               >
                 Guardar y Volver
@@ -379,8 +386,8 @@ export default function Marcador() {
           </div>
         )}
 
-        {/* Sets progress + save partial button */}
-        {!state.isMatchOver && (
+        {/* Sets progress + save partial button (hidden while set confirmation overlay is shown) */}
+        {!state.isMatchOver && !state.pendingSet && (
           <>
             <div className="flex items-center justify-center gap-3 mt-1">
               <SetDots won={state.setsWon[0]} total={state.setsToWin || 2} isLocal={true}  label={localLabel} />
