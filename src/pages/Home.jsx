@@ -69,10 +69,12 @@ export default function Home() {
 function JornadaCard({ jornada, onTap, onDelete }) {
   const [confirming, setConfirming] = useState(false);
   const { myTeam, visitingTeam, date, courts } = jornada;
-  const myWins    = courts.filter(c => c.winner === 'mine').length;
-  const theirWins = courts.filter(c => c.winner === 'theirs').length;
+  const mySetsWon   = (c) => c.matchState?.setsWon?.[0] ?? 0;
+  const theirSetsWon = (c) => c.matchState?.setsWon?.[1] ?? 0;
+  const myWins    = courts.filter(c => c.winner === 'mine' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) > theirSetsWon(c))).length;
+  const theirWins = courts.filter(c => c.winner === 'theirs' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) < theirSetsWon(c))).length;
   const jornadaWinner = getJornadaWinner(courts);
-  const inProgress = courts.some(c => !c.winner && c.matchState);
+  const inProgress = courts.some(c => !c.winner && c.matchState && !c.matchState.isMatchOver);
 
   return (
     <div className="relative w-full bg-surface-container-high rounded-2xl border border-white/5 hover:border-white/10 transition-all overflow-hidden">
@@ -92,7 +94,7 @@ function JornadaCard({ jornada, onTap, onDelete }) {
         <div className="flex items-center gap-3">
           {/* Score */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="lexend text-2xl font-black text-primary">{myWins}</span>
+            <span className="lexend text-2xl font-black text-team">{myWins}</span>
             <span className="lexend text-sm font-black text-on-surface-variant opacity-30">—</span>
             <span className="lexend text-2xl font-black text-secondary">{theirWins}</span>
           </div>
@@ -121,7 +123,7 @@ function JornadaCard({ jornada, onTap, onDelete }) {
             <div className="flex gap-0.5">
               {courts.map(c => (
                 <div key={c.id} className={`flex-1 h-1 rounded-full ${
-                  c.winner === 'mine' ? 'bg-primary' : c.winner === 'theirs' ? 'bg-secondary' : c.matchState ? 'bg-secondary/30' : 'bg-white/10'
+                  c.winner === 'mine' || (!c.winner && c.matchState?.isMatchOver && (c.matchState.setsWon?.[0] ?? 0) > (c.matchState.setsWon?.[1] ?? 0)) ? 'bg-primary' : c.winner === 'theirs' || (!c.winner && c.matchState?.isMatchOver && (c.matchState.setsWon?.[0] ?? 0) < (c.matchState.setsWon?.[1] ?? 0)) ? 'bg-secondary' : c.matchState ? 'bg-secondary/30' : 'bg-white/10'
                 }`} />
               ))}
             </div>

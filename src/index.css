@@ -17,6 +17,22 @@
     font-family: 'Lexend', sans-serif;
   }
   
+  .player-name {
+    font-family: 'Lexend', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+  }
+
+  .bg-forest-texture {
+    background-color: #1a5f33;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(255,255,255,0.04) 1px, transparent 1px),
+      radial-gradient(circle at 75% 75%, rgba(0,0,0,0.06) 1px, transparent 1px);
+    background-size: 12px 12px, 8px 8px;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

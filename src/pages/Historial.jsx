@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
+import ScoreDisplay from '../components/ScoreDisplay';
 import { useFinishedJornadas } from '../hooks/useJornadas';
 import { getJornadaWinner } from '../hooks/useLocalTeams';
 
@@ -109,8 +110,10 @@ function JornadaHistorialCard({ jornada }) {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { myTeam, visitingTeam, date, courts } = jornada;
-  const myWins    = courts.filter(c => c.winner === 'mine').length;
-  const theirWins = courts.filter(c => c.winner === 'theirs').length;
+  const mySetsWon   = (c) => c.matchState?.setsWon?.[0] ?? 0;
+  const theirSetsWon = (c) => c.matchState?.setsWon?.[1] ?? 0;
+  const myWins    = courts.filter(c => c.winner === 'mine' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) > theirSetsWon(c))).length;
+  const theirWins = courts.filter(c => c.winner === 'theirs' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) < theirSetsWon(c))).length;
   const jornadaWinner = getJornadaWinner(courts);
   const weWon = jornadaWinner === 'mine';
 
@@ -186,33 +189,51 @@ function JornadaHistorialCard({ jornada }) {
       {expanded && (
         <div className="px-4 pb-4 flex flex-col gap-1.5 border-t border-white/5 pt-3">
           {courts.map(court => {
-            const won  = court.winner === 'mine';
-            const lost = court.winner === 'theirs';
-            const score = buildScoreString(court.matchState);
-            const players = court.myPlayers.filter(Boolean).join(' / ') || '—';
+            const matchIsOver = !!court.matchState?.isMatchOver;
+            const mySetsWon   = court.matchState?.setsWon?.[0] ?? 0;
+            const theirSetsWon = court.matchState?.setsWon?.[1] ?? 0;
+            const won  = court.winner === 'mine' || (!court.winner && matchIsOver && mySetsWon > theirSetsWon);
+            const lost = court.winner === 'theirs' || (!court.winner && matchIsOver && mySetsWon < theirSetsWon);
+            const inProgress = !won && !lost && !!court.matchState;
+            const playerList = court.myPlayers.filter(Boolean);
             return (
               <button
                 key={court.id}
                 onClick={() => navigate('/marcador', { state: { court, jornada, returnTo: '/historial' } })}
-                className="flex flex-col w-full text-left hover:bg-white/5 rounded-xl px-2 py-1.5 -mx-2 transition-colors active:scale-[0.98] gap-0.5"
+                className="flex flex-col w-full text-left hover:bg-white/5 rounded-xl px-3 py-2 -mx-2 transition-colors active:scale-[0.98]"
               >
-                <div className="flex items-center gap-2 w-full">
-                  <span className={`material-symbols-outlined text-base shrink-0 ${won ? 'text-primary' : lost ? 'text-error' : 'text-on-surface-variant/40'}`}
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {won ? 'check_circle' : lost ? 'cancel' : 'radio_button_unchecked'}
-                  </span>
-                  <span className="lexend text-xs text-on-surface-variant shrink-0">{court.label}</span>
-                  <div className="flex-1" />
-                  {score && (
-                    <span className={`lexend text-[11px] font-bold shrink-0 ${won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'}`}>
-                      {score}
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`material-symbols-outlined text-base shrink-0 ${won ? 'text-primary' : lost ? 'text-error' : 'text-on-surface-variant/40'}`}
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      {won ? 'check_circle' : lost ? 'cancel' : 'radio_button_unchecked'}
                     </span>
-                  )}
-                  <span className="material-symbols-outlined text-on-surface-variant/30 text-sm shrink-0">edit</span>
+                    <span className="lexend text-xs text-on-surface-variant truncate">{court.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {court.matchState && (
+                      <ScoreDisplay matchState={court.matchState} status={won ? 'won' : lost ? 'lost' : 'inProgress'} />
+                    )}
+                    <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                      won ? 'bg-primary/10 text-primary/70' : lost ? 'bg-error/10 text-error/70' : 'bg-surface-container-low text-on-surface-variant/60'
+                    }`}>
+                      {won ? 'GANADO' : lost ? 'PERDIDO' : 'Pendiente'}
+                    </span>
+                    <span className="w-11 h-11 flex items-center justify-center text-on-surface-variant/30 rounded-xl">
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                    </span>
+                  </div>
                 </div>
-                {players !== '—' && (
-                  <p className="text-xs text-on-surface-variant/50 leading-snug ml-6 break-words">{players}</p>
+                {playerList.length > 0 && (
+                  <p className="player-name text-xs leading-snug ml-6 mt-0.5 break-words">
+                    {playerList.map((name, i) => (
+                      <span key={name}>
+                        {i > 0 && <span className="text-on-surface-variant/30 mx-1">·</span>}
+                        {name}
+                      </span>
+                    ))}
+                  </p>
                 )}
               </button>
             );

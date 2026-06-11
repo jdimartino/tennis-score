@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Header, BottomNav } from '../components/Layout';
+import ScoreDisplay from '../components/ScoreDisplay';
 import { getJornadaWinner } from '../hooks/useLocalTeams';
 import { useJornada } from '../hooks/useJornadas';
 
@@ -125,21 +126,21 @@ export default function Jornada() {
         </div>
 
         {/* Global Score Card */}
-        <div className="bg-surface-container-high rounded-[2rem] p-5 border border-white/5 shadow-2xl relative overflow-hidden">
+        <div className="bg-forest-texture rounded-[2rem] p-5 border border-white/5 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl" />
-          <p className="lexend text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 text-center">
+          <p className="lexend text-[10px] font-bold uppercase tracking-widest text-on-primary-container/80 mb-3 text-center">
             Marcador de Jornada
           </p>
           <div className="flex items-center justify-center gap-6">
             {/* My team */}
             <div className="flex flex-col items-center gap-1 flex-1">
-              <span className="lexend text-5xl font-black text-primary">{myWins}</span>
+              <span className="lexend text-5xl font-black text-team">{myWins}</span>
               <span className="lexend text-xs font-bold text-on-surface truncate max-w-full text-center">{myTeam.name}</span>
             </div>
             {/* Divider */}
             <div className="flex flex-col items-center gap-1">
-              <span className="lexend text-2xl font-black text-on-surface-variant">—</span>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">de {needed}</span>
+              <span className="lexend text-2xl font-black text-on-primary-container/50">—</span>
+              <span className="text-[10px] text-on-primary-container/60 uppercase tracking-widest">de {needed}</span>
             </div>
             {/* Visiting */}
             <div className="flex flex-col items-center gap-1 flex-1">
@@ -157,7 +158,7 @@ export default function Jornada() {
                     ? 'bg-primary'
                     : c.winner === 'theirs'
                       ? 'bg-secondary'
-                      : 'bg-white/10'
+                      : 'bg-white/20'
                 }`}
               />
             ))}
@@ -242,41 +243,24 @@ function buildShareText(jornada) {
   return lines.filter(l => l !== null).join('\n');
 }
 
-function buildScoreString(matchState) {
-  if (!matchState) return null;
-  const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
-  const sets = completedSets.map(s => {
-    if (s.superTie) return `ST ${s.superTie[0]}-${s.superTie[1]}`;
-    const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
-    return `${s.games[0]}-${s.games[1]}${loser !== null ? `(${loser})` : ''}`;
-  });
-  if (!isMatchOver) {
-    if (matchState.setsWon?.[0] === 1 && matchState.setsWon?.[1] === 1 && matchState.superTie) {
-      sets.push(`ST ${matchState.superTie.points[0]}-${matchState.superTie.points[1]}`);
-    } else if (current[0] === 6 && current[1] === 6 && matchState.tiebreak) {
-      sets.push(`6-6 (${matchState.tiebreak.points[0]}-${matchState.tiebreak.points[1]})`);
-    } else {
-      sets.push(`${current[0]}-${current[1]}`);
-    }
-  }
-  return sets.join('  ');
-}
-
 function CourtRow({ court, onTap }) {
   const isDoubles = court.type === 'doubles';
-  const won       = court.winner === 'mine';
-  const lost      = court.winner === 'theirs';
-  const inProgress = !court.winner && !!court.matchState;
+  const matchIsOver = !!court.matchState?.isMatchOver;
+  const mySetsWon   = court.matchState?.setsWon?.[0] ?? 0;
+  const theirSetsWon = court.matchState?.setsWon?.[1] ?? 0;
+  const won    = court.winner === 'mine' || (!court.winner && matchIsOver && mySetsWon > theirSetsWon);
+  const lost   = court.winner === 'theirs' || (!court.winner && matchIsOver && mySetsWon < theirSetsWon);
+  const inProgress = !won && !lost && !!court.matchState && !matchIsOver;
   const pending   = !court.winner && !court.matchState;
   const hasResult = won || lost;
 
-  const playerDisplay = court.myPlayers.filter(Boolean).join(' / ') || '—';
-  const scoreString   = buildScoreString(court.matchState);
+  const players = court.myPlayers.filter(Boolean);
+
 
   return (
     <button
       onClick={onTap}
-      className={`w-full text-left bg-surface-container-high rounded-2xl p-4 border transition-all active:scale-[0.98] hover:border-white/15 ${
+      className={`w-full text-left bg-surface-container-high rounded-2xl p-5 border transition-all active:scale-[0.98] hover:border-white/15 relative min-h-[170px] ${
         won
           ? 'border-primary/30 bg-primary/5'
           : lost
@@ -284,52 +268,79 @@ function CourtRow({ court, onTap }) {
             : 'border-white/5'
       }`}
     >
-      <div className="flex items-center gap-3">
-        {/* Status icon */}
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          won ? 'bg-primary/20' : lost ? 'bg-error/20' : inProgress ? 'bg-secondary/15' : 'bg-surface-container-low'
+      {/* Title + D/S badge — top-left corner */}
+      <div className="absolute top-5 left-5 flex items-center gap-2">
+        <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
+        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+          isDoubles ? 'bg-team/10 text-team/70' : 'bg-secondary/10 text-secondary/70'
         }`}>
-          {won       && <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
-          {lost      && <span className="material-symbols-outlined text-error"   style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>}
-          {inProgress && <span className="material-symbols-outlined text-secondary">timer</span>}
-          {pending   && (
-            <span className={`material-symbols-outlined ${isDoubles ? 'text-primary/40' : 'text-secondary/40'}`}>
-              {isDoubles ? 'group' : 'person'}
-            </span>
+          {isDoubles ? 'D' : 'S'}
+        </span>
+      </div>
+
+      {/* Edit / chevron — bottom-right corner */}
+      <div className="absolute bottom-5 right-5">
+        {(hasResult || inProgress) && (
+          <span className={`w-11 h-11 flex items-center justify-center rounded-xl ${
+            won ? 'text-team/50' : lost ? 'text-team/50' : 'text-secondary/50'
+          }`}>
+            <span className="material-symbols-outlined text-base">edit</span>
+          </span>
+        )}
+        {pending && (
+          <span className="material-symbols-outlined text-on-surface-variant w-11 h-11 flex items-center justify-center">
+            chevron_right
+          </span>
+        )}
+      </div>
+
+      {/* Center content grid */}
+      <div className="grid items-center content-center min-h-[110px]" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+        {/* Col 1: Player names */}
+        <div>
+          {players.length > 0 ? (
+            <p className="player-name text-sm truncate leading-snug pr-2">
+              {players.map((name, i) => (
+                <span key={name}>
+                  {i > 0 && <span className="text-on-surface-variant/30 mx-1">·</span>}
+                  {name}
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="player-name text-sm truncate leading-snug">—</p>
           )}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-              isDoubles ? 'bg-primary/10 text-primary/70' : 'bg-secondary/10 text-secondary/70'
-            }`}>
-              {isDoubles ? 'D' : 'S'}
-            </span>
-          </div>
-          <p className="text-on-surface-variant text-[13px] mt-0.5 truncate">{playerDisplay}</p>
-        </div>
+        {/* Col 2: empty spacer */}
+        <div />
 
-        {/* Result / Edit icon */}
-        <div className="shrink-0 flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-2">
-            {won        && <span className="lexend text-[13px] font-bold text-primary">GANADO</span>}
-            {lost       && <span className="lexend text-[13px] font-bold text-error">PERDIDO</span>}
-            {inProgress && <span className="lexend text-[13px] font-bold text-secondary">EN CURSO</span>}
-            {(hasResult || inProgress) && (
-              <span className={`material-symbols-outlined text-base ${
-                won ? 'text-primary/50' : lost ? 'text-error/50' : 'text-secondary/50'
-              }`}>edit</span>
-            )}
-            {pending && <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>}
-          </div>
-          {scoreString && (
-            <span className={`lexend text-xs font-bold tracking-wide ${
-              won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'
-            }`}>
-              {scoreString}
+        {/* Col 3: Score box + Status pill — right side */}
+        <div className="flex flex-col items-end gap-2">
+          {court.matchState && (
+            <div className="bg-primary/5 rounded-xl px-3 py-1.5 border border-primary/10">
+              <ScoreDisplay matchState={court.matchState} status={won ? 'won' : lost ? 'lost' : 'inProgress'} />
+            </div>
+          )}
+          {won && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-primary/10 text-primary">
+              GANADO
+            </span>
+          )}
+          {lost && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-error/10 text-error">
+              PERDIDO
+            </span>
+          )}
+          {inProgress && (
+            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-secondary/15 text-secondary">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+              EN CURSO
+            </span>
+          )}
+          {pending && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant/60">
+              Pendiente
             </span>
           )}
         </div>

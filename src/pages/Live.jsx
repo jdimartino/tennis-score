@@ -1,26 +1,7 @@
 import { useParams } from 'react-router-dom';
+import ScoreDisplay from '../components/ScoreDisplay';
 import { useJornada } from '../hooks/useJornadas';
 import { getJornadaWinner } from '../hooks/useLocalTeams';
-
-function buildScoreString(matchState) {
-  if (!matchState) return null;
-  const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
-  const sets = completedSets.map(s => {
-    if (s.superTie) return `ST ${s.superTie[0]}-${s.superTie[1]}`;
-    const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
-    return `${s.games[0]}-${s.games[1]}${loser !== null ? `(${loser})` : ''}`;
-  });
-  if (!isMatchOver) {
-    if (matchState.setsWon?.[0] === 1 && matchState.setsWon?.[1] === 1 && matchState.superTie) {
-      sets.push(`ST ${matchState.superTie.points[0]}-${matchState.superTie.points[1]}`);
-    } else if (current[0] === 6 && current[1] === 6 && matchState.tiebreak) {
-      sets.push(`6-6 (${matchState.tiebreak.points[0]}-${matchState.tiebreak.points[1]})`);
-    } else {
-      sets.push(`${current[0]}-${current[1]}`);
-    }
-  }
-  return sets.join('  ');
-}
 
 export default function Live() {
   const { id } = useParams();
@@ -160,58 +141,81 @@ export default function Live() {
 }
 
 function LiveCourtRow({ court, myTeamName, visitingTeam }) {
-  const isDoubles  = court.type === 'doubles';
-  const won        = court.winner === 'mine';
-  const lost       = court.winner === 'theirs';
-  const inProgress = !court.winner && !!court.matchState;
+  const isDoubles = court.type === 'doubles';
+  const matchIsOver = !!court.matchState?.isMatchOver;
+  const mySetsWon   = court.matchState?.setsWon?.[0] ?? 0;
+  const theirSetsWon = court.matchState?.setsWon?.[1] ?? 0;
+  const won    = court.winner === 'mine' || (!court.winner && matchIsOver && mySetsWon > theirSetsWon);
+  const lost   = court.winner === 'theirs' || (!court.winner && matchIsOver && mySetsWon < theirSetsWon);
+  const inProgress = !won && !lost && !!court.matchState && !matchIsOver;
   const pending    = !court.winner && !court.matchState;
 
-  const playerDisplay = court.myPlayers.filter(Boolean).join(' / ') || '—';
-  const scoreString   = buildScoreString(court.matchState);
+  const players = court.myPlayers.filter(Boolean);
+
 
   return (
-    <div className={`w-full bg-surface-container-high rounded-2xl p-4 border transition-colors ${
+    <div className={`w-full bg-surface-container-high rounded-2xl p-5 border transition-colors relative min-h-[170px] ${
       won  ? 'border-primary/30 bg-primary/5'
            : lost ? 'border-error/20 bg-error/5'
            : 'border-white/5'
     }`}>
-      <div className="flex items-center gap-3">
-        {/* Status icon */}
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          won ? 'bg-primary/20' : lost ? 'bg-error/20' : inProgress ? 'bg-secondary/15' : 'bg-surface-container-low'
+      {/* Title + D/S badge — top-left corner */}
+      <div className="absolute top-5 left-5 flex items-center gap-2">
+        <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
+        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+          isDoubles ? 'bg-team/10 text-team/70' : 'bg-secondary/10 text-secondary/70'
         }`}>
-          {won        && <span className="material-symbols-outlined text-primary"   style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
-          {lost       && <span className="material-symbols-outlined text-error"     style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>}
-          {inProgress && <span className="material-symbols-outlined text-secondary animate-pulse">timer</span>}
-          {pending    && <span className={`material-symbols-outlined ${isDoubles ? 'text-primary/40' : 'text-secondary/40'}`}>{isDoubles ? 'group' : 'person'}</span>}
+          {isDoubles ? 'D' : 'S'}
+        </span>
+      </div>
+
+      {/* Center content grid */}
+      <div className="grid items-center content-center min-h-[110px]" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+        {/* Col 1: Player names */}
+        <div>
+          {players.length > 0 ? (
+            <p className="player-name text-sm truncate leading-snug pr-2">
+              {players.map((name, i) => (
+                <span key={name}>
+                  {i > 0 && <span className="text-on-surface-variant/30 mx-1">·</span>}
+                  {name}
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="player-name text-sm truncate leading-snug">—</p>
+          )}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-              isDoubles ? 'bg-primary/10 text-primary/70' : 'bg-secondary/10 text-secondary/70'
-            }`}>
-              {isDoubles ? 'D' : 'S'}
+        {/* Col 2: empty spacer */}
+        <div />
+
+        {/* Col 3: Score box + Status pill — right side */}
+        <div className="flex flex-col items-end gap-2">
+          {court.matchState && (
+            <div className="bg-primary/5 rounded-xl px-3 py-1.5 border border-primary/10">
+              <ScoreDisplay matchState={court.matchState} status={won ? 'won' : lost ? 'lost' : 'inProgress'} />
+            </div>
+          )}
+          {won && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-primary/10 text-primary">
+              GANADO
             </span>
-          </div>
-          <p className="text-on-surface-variant text-xs mt-0.5 truncate">{playerDisplay}</p>
-        </div>
-
-        {/* Score / status */}
-        <div className="shrink-0 flex flex-col items-end gap-0.5">
-          <div className="flex items-center gap-2">
-            {won        && <span className="lexend text-xs font-bold text-primary">GANADO</span>}
-            {lost       && <span className="lexend text-xs font-bold text-error">PERDIDO</span>}
-            {inProgress && <span className="lexend text-xs font-bold text-secondary">EN CURSO</span>}
-            {pending    && <span className="lexend text-xs text-on-surface-variant">Pendiente</span>}
-          </div>
-          {scoreString && (
-            <span className={`lexend text-[11px] font-bold tracking-wide ${
-              won ? 'text-primary/70' : lost ? 'text-error/70' : 'text-on-surface-variant'
-            }`}>
-              {scoreString}
+          )}
+          {lost && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-error/10 text-error">
+              PERDIDO
+            </span>
+          )}
+          {inProgress && (
+            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-secondary/15 text-secondary">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+              EN CURSO
+            </span>
+          )}
+          {pending && (
+            <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant/60">
+              Pendiente
             </span>
           )}
         </div>

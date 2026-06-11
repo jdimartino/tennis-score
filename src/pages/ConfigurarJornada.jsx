@@ -117,14 +117,14 @@ function CourtCard({ court, players, onUpdatePlayer }) {
   return (
     <div className="bg-surface-container-high rounded-2xl p-4 border border-white/5 flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDoubles ? 'bg-primary/15' : 'bg-secondary/15'}`}>
-          <span className={`material-symbols-outlined text-lg ${isDoubles ? 'text-primary' : 'text-secondary'}`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDoubles ? 'bg-team/15' : 'bg-secondary/15'}`}>
+          <span className={`material-symbols-outlined text-lg ${isDoubles ? 'text-team' : 'text-secondary'}`}>
             {isDoubles ? 'group' : 'person'}
           </span>
         </div>
         <div>
           <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
-          <span className={`block text-[10px] uppercase tracking-wider font-bold ${isDoubles ? 'text-primary/60' : 'text-secondary/60'}`}>
+          <span className={`block text-[10px] uppercase tracking-wider font-bold ${isDoubles ? 'text-team/60' : 'text-secondary/60'}`}>
             {isDoubles ? 'Dobles' : 'Singles'}
           </span>
         </div>
