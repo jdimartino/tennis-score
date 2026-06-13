@@ -163,8 +163,8 @@ export function getLeagueFormat(league) {
 }
 
 export function getJornadaWinner(courts) {
-  const myWins    = courts.filter(c => c.winner === 'mine').length;
-  const theirWins = courts.filter(c => c.winner === 'theirs').length;
+  const myWins    = courts.filter(c => c.winner === 'mine' || (!c.winner && c.matchState?.isMatchOver && (c.matchState.setsWon?.[0] ?? 0) > (c.matchState.setsWon?.[1] ?? 0))).length;
+  const theirWins = courts.filter(c => c.winner === 'theirs' || (!c.winner && c.matchState?.isMatchOver && (c.matchState.setsWon?.[0] ?? 0) < (c.matchState.setsWon?.[1] ?? 0))).length;
   const needed    = Math.ceil(courts.length / 2);
   if (myWins    >= needed) return 'mine';
   if (theirWins >= needed) return 'theirs';

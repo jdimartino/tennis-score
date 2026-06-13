@@ -66,7 +66,12 @@ function buildShareText(jornada) {
     date ? `📅 ${date}` : '',
     '',
     ...courts.map(c => {
-      const icon   = c.winner === 'mine' ? '✅' : c.winner === 'theirs' ? '❌' : '⏳';
+      const matchIsOver = !!c.matchState?.isMatchOver;
+      const mySetsWon   = c.matchState?.setsWon?.[0] ?? 0;
+      const theirSetsWon = c.matchState?.setsWon?.[1] ?? 0;
+      const won = c.winner === 'mine' || (!c.winner && matchIsOver && mySetsWon > theirSetsWon);
+      const lost = c.winner === 'theirs' || (!c.winner && matchIsOver && mySetsWon < theirSetsWon);
+      const icon   = won ? '✅' : lost ? '❌' : '⏳';
       const player = c.myPlayers.filter(Boolean).join(' / ') || '—';
       const score  = buildScoreString(c.matchState);
       return `${c.label} · ${player}   ${icon}${score ? '  ' + score : ''}`;
@@ -226,14 +231,11 @@ function JornadaHistorialCard({ jornada }) {
                   </div>
                 </div>
                 {playerList.length > 0 && (
-                  <p className="player-name text-xs leading-snug ml-6 mt-0.5 break-words">
-                    {playerList.map((name, i) => (
-                      <span key={name}>
-                        {i > 0 && <span className="text-on-surface-variant/30 mx-1">·</span>}
-                        {name}
-                      </span>
+                  <div className="flex flex-col gap-0.5 ml-6 mt-0.5">
+                    {playerList.map((name) => (
+                      <span key={name} className="player-name text-xs leading-snug break-words">{name}</span>
                     ))}
-                  </p>
+                  </div>
                 )}
               </button>
             );

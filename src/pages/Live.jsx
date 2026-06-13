@@ -26,8 +26,10 @@ export default function Live() {
   }
 
   const { myTeam, visitingTeam, date, courts } = jornada;
-  const myWins     = courts.filter(c => c.winner === 'mine').length;
-  const theirWins  = courts.filter(c => c.winner === 'theirs').length;
+  const mySetsWon   = (c) => c.matchState?.setsWon?.[0] ?? 0;
+  const theirSetsWon = (c) => c.matchState?.setsWon?.[1] ?? 0;
+  const myWins     = courts.filter(c => c.winner === 'mine' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) > theirSetsWon(c))).length;
+  const theirWins  = courts.filter(c => c.winner === 'theirs' || (!c.winner && c.matchState?.isMatchOver && mySetsWon(c) < theirSetsWon(c))).length;
   const totalCourts = courts.length;
   const needed     = Math.ceil(totalCourts / 2);
   const jornadaWinner = getJornadaWinner(courts);
@@ -170,33 +172,21 @@ function LiveCourtRow({ court, myTeamName, visitingTeam }) {
       </div>
 
       {/* Center content grid */}
-      <div className="grid items-center content-center min-h-[110px]" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
-        {/* Col 1: Player names */}
+      <div className="grid items-center content-center min-h-[110px] gap-y-3" style={{ gridTemplateColumns: '1fr auto' }}>
+        {/* Row 1: Player names (left) + Status pill (right) */}
         <div>
           {players.length > 0 ? (
-            <p className="player-name text-sm truncate leading-snug pr-2">
-              {players.map((name, i) => (
-                <span key={name}>
-                  {i > 0 && <span className="text-on-surface-variant/30 mx-1">·</span>}
-                  {name}
-                </span>
+            <div className="flex flex-col gap-0.5 pr-2">
+              {players.map((name) => (
+                <span key={name} className="player-name text-sm truncate leading-snug">{name}</span>
               ))}
-            </p>
+            </div>
           ) : (
             <p className="player-name text-sm truncate leading-snug">—</p>
           )}
         </div>
 
-        {/* Col 2: empty spacer */}
-        <div />
-
-        {/* Col 3: Score box + Status pill — right side */}
-        <div className="flex flex-col items-end gap-2">
-          {court.matchState && (
-            <div className="bg-primary/5 rounded-xl px-3 py-1.5 border border-primary/10">
-              <ScoreDisplay matchState={court.matchState} status={won ? 'won' : lost ? 'lost' : 'inProgress'} />
-            </div>
-          )}
+        <div className="flex flex-col items-end gap-1">
           {won && (
             <span className="text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full bg-primary/10 text-primary">
               GANADO
@@ -219,6 +209,15 @@ function LiveCourtRow({ court, myTeamName, visitingTeam }) {
             </span>
           )}
         </div>
+
+        {/* Row 2: Score expanded — full width, centered */}
+        {court.matchState && (
+          <div className="col-span-2 flex justify-center">
+            <div className="bg-primary/5 rounded-xl px-3 py-1.5 border border-primary/10 w-full flex justify-center">
+              <ScoreDisplay matchState={court.matchState} status={won ? 'won' : lost ? 'lost' : 'inProgress'} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

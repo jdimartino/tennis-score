@@ -427,28 +427,28 @@ function PlayerRow({ label, games, setsWon, isLocal, onAdd, onRemove }) {
         {[0, 1].map(i => (
           <div key={i} className={`w-2 h-2 rounded-full ${
             i < setsWon
-              ? isLocal ? 'bg-primary' : 'bg-secondary'
+              ? isLocal ? 'bg-team' : 'bg-secondary'
               : 'bg-white/10'
           }`} />
         ))}
       </div>
-      <span className={`lexend font-bold text-sm flex-1 truncate ${isLocal ? 'text-primary' : 'text-secondary'}`}>
+      <span className={`lexend font-bold text-sm flex-1 truncate ${isLocal ? 'text-team' : 'text-secondary'}`}>
         {label}
       </span>
       <button
         onClick={onRemove}
         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isLocal
-            ? 'bg-primary/10 text-primary hover:bg-primary/20'
+            ? 'bg-team/10 text-team hover:bg-team/20'
             : 'bg-secondary/10 text-secondary hover:bg-secondary/20'
         }`}
       >
         <span className="material-symbols-outlined text-lg">remove</span>
       </button>
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-        isLocal ? 'bg-primary/15' : 'bg-secondary/15'
+        isLocal ? 'bg-team/15' : 'bg-secondary/15'
       }`}>
-        <span className={`lexend font-black text-3xl ${isLocal ? 'text-primary' : 'text-secondary'}`}>
+        <span className={`lexend font-black text-3xl ${isLocal ? 'text-team' : 'text-secondary'}`}>
           {games}
         </span>
       </div>
@@ -456,7 +456,7 @@ function PlayerRow({ label, games, setsWon, isLocal, onAdd, onRemove }) {
         onClick={onAdd}
         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
           isLocal
-            ? 'bg-primary/20 text-primary hover:bg-primary/30'
+            ? 'bg-team/20 text-team hover:bg-team/30'
             : 'bg-secondary/20 text-secondary hover:bg-secondary/30'
         }`}
       >
