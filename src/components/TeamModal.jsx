@@ -43,6 +43,14 @@ function TeamRow({ team, accentClass, onDelete, onEdit, leagueSelector }) {
             >
               CTA<span className="block text-[9px] font-normal normal-case opacity-80">4D + 1S</span>
             </button>
+            <button
+              onClick={() => setEditLeague('mixtos')}
+              className={`flex-1 py-1.5 rounded-lg text-[11px] lexend font-bold uppercase tracking-wider transition-all ${
+                editLeague === 'mixtos' ? 'bg-team text-background' : 'bg-surface-container-low text-on-surface-variant'
+              }`}
+            >
+              Mixtos<span className="block text-[9px] font-normal normal-case opacity-80">3 Dobles</span>
+            </button>
           </div>
         )}
         <div className="flex gap-2">
@@ -140,6 +148,14 @@ function AddTeamRow({ onAdd, showLeague = false, defaultLeague = 'tol', isPrimar
             }`}
           >
             CTA<span className="block text-[10px] font-normal normal-case mt-0.5 opacity-80">4D + 1S</span>
+          </button>
+          <button
+            onClick={() => setLeague('mixtos')}
+            className={`flex-1 py-2 rounded-xl text-xs lexend font-bold uppercase tracking-wider transition-all ${
+              league === 'mixtos' ? 'bg-team text-background' : 'bg-surface-container-low text-on-surface-variant'
+            }`}
+          >
+            Mixtos<span className="block text-[10px] font-normal normal-case mt-0.5 opacity-80">3 Dobles</span>
           </button>
         </div>
       )}

@@ -70,9 +70,9 @@ export default function ConfigurarJornada() {
         </div>
 
         {/* League badge */}
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl w-fit ${myTeam.league === 'cta' ? 'bg-secondary/10' : 'bg-primary/10'}`}>
-          <span className={`lexend text-xs font-bold ${myTeam.league === 'cta' ? 'text-secondary' : 'text-primary'}`}>
-            {myTeam.league === 'cta' ? 'Liga CTA · 4 Dobles + 1 Singles' : 'Liga TOL · 5 Dobles'}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl w-fit ${myTeam.league === 'cta' ? 'bg-secondary/10' : myTeam.league === 'mixtos' ? 'bg-team/10' : 'bg-primary/10'}`}>
+          <span className={`lexend text-xs font-bold ${myTeam.league === 'cta' ? 'text-secondary' : myTeam.league === 'mixtos' ? 'text-team' : 'text-primary'}`}>
+            {myTeam.league === 'cta' ? 'Liga CTA · 4 Dobles + 1 Singles' : myTeam.league === 'mixtos' ? 'Liga Mixtos · 3 Dobles' : 'Liga TOL · 5 Dobles'}
           </span>
         </div>
 

@@ -133,16 +133,25 @@ export function useVisitingTeams() {
 export function getLeagueLabel(league) {
   if (league === 'tol' || league === 'cumbres') return 'TOL';
   if (league === 'cta') return 'CTA';
+  if (league === 'mixtos') return 'Mixtos';
   return league?.toUpperCase?.() ?? '';
 }
 
 export function getLeagueDetail(league) {
   if (league === 'tol' || league === 'cumbres') return '5 Dobles';
   if (league === 'cta') return '4D + 1S';
+  if (league === 'mixtos') return '3 Dobles';
   return '';
 }
 
 export function getLeagueFormat(league) {
+  if (league === 'mixtos') {
+    return [
+      { id: 1, type: 'doubles', label: 'Dobles 1' },
+      { id: 2, type: 'doubles', label: 'Dobles 2' },
+      { id: 3, type: 'doubles', label: 'Dobles 3' },
+    ];
+  }
   if (league === 'cta') {
     return [
       { id: 1, type: 'doubles', label: 'Dobles 1' },

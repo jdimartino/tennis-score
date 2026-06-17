@@ -50,6 +50,8 @@ export default function Configuracion() {
 
   const leagueInfo = selectedTeam?.league === 'cta'
     ? { label: 'Liga CTA', detail: '4 Dobles + 1 Singles', color: 'text-secondary', bg: 'bg-secondary/10' }
+    : selectedTeam?.league === 'mixtos'
+    ? { label: 'Liga Mixtos', detail: '3 Dobles', color: 'text-team', bg: 'bg-team/10' }
     : { label: 'Liga TOL', detail: '5 Dobles', color: 'text-primary', bg: 'bg-primary/10' };
 
   return (
