@@ -94,15 +94,15 @@ function buildScoreString(matchState) {
   if (!matchState) return null;
   const { completedSets = [], current = [0, 0], isMatchOver } = matchState;
   const sets = completedSets.map(s => {
-    if (s.superTie) return `ST ${s.superTie[0]}-${s.superTie[1]}`;
-    const loser = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
-    return `${s.games[0]}-${s.games[1]}${loser !== null ? `(${loser})` : ''}`;
+    if (s.superTie) return `ST (${s.superTie[0]}-${s.superTie[1]})`;
+    if (s.tiebreak) return `${s.games[0]}-${s.games[1]} TIE (${s.tiebreak[0]}-${s.tiebreak[1]})`;
+    return `${s.games[0]}-${s.games[1]}`;
   });
   if (!isMatchOver) {
     if (matchState.setsWon?.[0] === 1 && matchState.setsWon?.[1] === 1 && matchState.superTie) {
-      sets.push(`ST ${matchState.superTie.points[0]}-${matchState.superTie.points[1]}`);
+      sets.push(`ST (${matchState.superTie.points[0]}-${matchState.superTie.points[1]})`);
     } else if (current[0] === 6 && current[1] === 6 && matchState.tiebreak) {
-      sets.push(`6-6 (${matchState.tiebreak.points[0]}-${matchState.tiebreak.points[1]})`);
+      sets.push(`6-6 TIE (${matchState.tiebreak.points[0]}-${matchState.tiebreak.points[1]})`);
     } else {
       sets.push(`${current[0]}-${current[1]}`);
     }

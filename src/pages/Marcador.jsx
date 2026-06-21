@@ -173,7 +173,7 @@ export default function Marcador() {
                 const isEditing = editingIndex === i;
                 return (
                   <div key={i} className={`bg-amber-500/10 border ${isEditing ? 'border-amber-500' : 'border-amber-500/30'} rounded-xl px-3 py-1.5 flex items-center gap-1.5 text-xs`}>
-                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide mr-1">Super Tie</span>
+                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide mr-1">ST</span>
                     {isEditing ? (
                       <>
                         <button onClick={() => handleEditSuperTie(i, 0, -1)} className="w-5 h-5 rounded flex items-center justify-center bg-amber-500/20 text-amber-400 active:scale-90 transition-all">−</button>
@@ -200,7 +200,6 @@ export default function Marcador() {
                 );
               }
               const setWinner = s.games[0] > s.games[1] ? 0 : 1;
-              const loserTieScore = s.tiebreak ? Math.min(s.tiebreak[0], s.tiebreak[1]) : null;
               const hasTiebreak = s.tiebreak != null;
               const isEditing = editingIndex === i;
               return (
@@ -216,7 +215,7 @@ export default function Marcador() {
                       <button onClick={() => handleEditGames(i, 1, 1)} className="w-5 h-5 rounded flex items-center justify-center bg-secondary/20 text-secondary active:scale-90 transition-all">+</button>
                       {hasTiebreak && (
                         <>
-                          <span className="text-on-surface-variant opacity-30 ml-1">(</span>
+                          <span className="text-on-surface-variant opacity-30 ml-1">TIE (</span>
                           <button onClick={() => handleEditTiebreak(i, 0, -1)} className="w-4 h-4 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all text-[8px]">−</button>
                           <span className="text-on-surface-variant opacity-40 text-[10px] w-3 text-center">{s.tiebreak[0]}</span>
                           <button onClick={() => handleEditTiebreak(i, 0, 1)} className="w-4 h-4 rounded flex items-center justify-center bg-primary/20 text-primary active:scale-90 transition-all text-[8px]">+</button>
@@ -238,8 +237,8 @@ export default function Marcador() {
                       <span className={`lexend font-bold ${setWinner === 0 ? 'text-primary' : 'text-on-surface-variant'}`}>{s.games[0]}</span>
                       <span className="text-on-surface-variant opacity-40">–</span>
                       <span className={`lexend font-bold ${setWinner === 1 ? 'text-secondary' : 'text-on-surface-variant'}`}>{s.games[1]}</span>
-                      {loserTieScore !== null && (
-                        <span className="text-on-surface-variant opacity-40 text-[10px]">({loserTieScore})</span>
+                      {s.tiebreak != null && (
+                        <span className="text-on-surface-variant opacity-40 text-[10px]"> TIE ({s.tiebreak[0]}–{s.tiebreak[1]})</span>
                       )}
                       <span className="text-on-surface-variant opacity-30 text-[10px] ml-1">S{i + 1}</span>
                       <button onClick={() => setEditingIndex(i)} className="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant/30 hover:text-on-surface-variant transition-colors text-[10px]">✏️</button>

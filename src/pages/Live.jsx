@@ -74,7 +74,7 @@ export default function Live() {
           </p>
           <div className="flex items-center justify-center gap-6">
             <div className="flex flex-col items-center gap-1 flex-1">
-              <span className="lexend text-5xl font-black text-primary">{myWins}</span>
+              <span className="lexend text-5xl font-black text-team">{myWins}</span>
               <span className="lexend text-xs font-bold text-on-surface truncate max-w-full text-center">{myTeam.name}</span>
             </div>
             <div className="flex flex-col items-center gap-1">
@@ -93,7 +93,7 @@ export default function Live() {
                 key={c.id}
                 className={`flex-1 h-1.5 rounded-full transition-colors ${
                   c.winner === 'mine'
-                    ? 'bg-primary'
+                    ? 'bg-team'
                     : c.winner === 'theirs'
                       ? 'bg-secondary'
                       : c.matchState
@@ -156,13 +156,13 @@ function LiveCourtRow({ court, myTeamName, visitingTeam }) {
 
 
   return (
-    <div className={`w-full bg-surface-container-high rounded-2xl p-5 border transition-colors relative min-h-[170px] ${
+    <div className={`w-full bg-surface-container-high rounded-2xl p-5 border transition-colors min-h-[170px] ${
       won  ? 'border-primary/30 bg-primary/5'
            : lost ? 'border-error/20 bg-error/5'
            : 'border-white/5'
     }`}>
-      {/* Title + D/S badge — top-left corner */}
-      <div className="absolute top-5 left-5 flex items-center gap-2">
+      {/* Title + D/S badge */}
+      <div className="flex items-center gap-2 mb-3">
         <span className="lexend font-bold text-sm text-on-surface">{court.label}</span>
         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
           isDoubles ? 'bg-team/10 text-team/70' : 'bg-secondary/10 text-secondary/70'

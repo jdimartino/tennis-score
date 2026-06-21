@@ -51,6 +51,7 @@ export default function Jornada() {
       try { await navigator.share({ text }); } catch (_) { /* usuario canceló */ }
     } else {
       await navigator.clipboard.writeText(text);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -64,6 +65,7 @@ export default function Jornada() {
       try { await navigator.share({ title, text, url: liveUrl }); } catch (_) { /* usuario canceló */ }
     } else {
       await navigator.clipboard.writeText(liveUrl);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + liveUrl)}`, '_blank');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
