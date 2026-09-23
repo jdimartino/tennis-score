@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "tennis-score-jdm",
+    "target": "tennis-score-jdm",
     "public": "dist",
     "ignore": [
       "firebase.json",
