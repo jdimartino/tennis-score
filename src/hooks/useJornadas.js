@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
-const jornadasCol = collection(db, 'jornadas');
+const jornadasCol = collection(db, 'jornadasScore');
 
 /**
  * Validate and repair matchState inconsistencies before saving.
@@ -81,7 +81,7 @@ export function useJornadas() {
   }, []);
 
   const deleteJornada = useCallback(async (id) => {
-    const ref = doc(db, 'jornadas', id);
+    const ref = doc(db, 'jornadasScore', id);
     await deleteDoc(ref);
   }, []);
 
@@ -120,7 +120,7 @@ export function useJornada(id) {
 
   useEffect(() => {
     if (!id) { setJornada(null); return; }
-    const ref = doc(db, 'jornadas', id);
+    const ref = doc(db, 'jornadasScore', id);
     const unsub = onSnapshot(
       ref,
       (snap) => { setJornada(snap.exists() ? snap.data() : null); },
@@ -131,7 +131,7 @@ export function useJornada(id) {
 
   const updateCourt = useCallback(async (courtId, patch, { preserveFinished = false } = {}) => {
     if (!id) return;
-    const ref = doc(db, 'jornadas', id);
+    const ref = doc(db, 'jornadasScore', id);
     await runTransaction(db, async (transaction) => {
       const snap = await transaction.get(ref);
       if (!snap.exists()) return;
@@ -154,7 +154,7 @@ export function useJornada(id) {
 
   const finishJornada = useCallback(async () => {
     if (!id) return;
-    const ref = doc(db, 'jornadas', id);
+    const ref = doc(db, 'jornadasScore', id);
     await setDoc(ref, { status: 'finished' }, { merge: true });
   }, [id]);
 

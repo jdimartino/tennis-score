@@ -3,7 +3,7 @@ import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 // ─────────────────── Firestore refs ───────────────────
-const TEAMS_DOC = doc(db, 'config', 'teams');
+const TEAMS_DOC = doc(db, 'config', 'tennisScore_teams');
 const DEFAULT_LOCAL = [
   { id: 1, name: 'TOL',          league: 'tol' },
   { id: 2, name: 'Club Táchira', league: 'cta' },

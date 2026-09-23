@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, onSnapshot, setDoc, deleteDoc, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
-const JORNADA_DOC = doc(db, 'jornadas', 'active');
+const JORNADA_DOC = doc(db, 'jornadasScore', 'active');
 
 /**
  * Real-time active jornada hook backed by Firestore.
